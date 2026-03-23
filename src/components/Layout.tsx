@@ -77,18 +77,25 @@ export function Layout({ children }: LayoutProps) {
 
         {/* Footer com Logos - Fundo branco */}
         <div className="p-3 border-t border-white/10">
-          <div className="bg-white rounded-xl p-4 shadow-lg">
-            <p className="text-xs font-medium text-slate-500 mb-3 text-center">Parceria</p>
-            <div className="flex items-center justify-center gap-4">
+          <div className="bg-white rounded-xl p-3 shadow-lg">
+            <p className="text-xs font-medium text-slate-500 mb-2 text-center">Parceria</p>
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex items-center justify-center gap-3">
+                <img 
+                  src="/logos/einstein.png" 
+                  alt="Einstein" 
+                  className="h-10 object-contain"
+                />
+                <img 
+                  src="/logos/opas.png" 
+                  alt="OPAS" 
+                  className="h-10 object-contain"
+                />
+              </div>
               <img 
-                src="/logos/einstein.png" 
-                alt="Einstein" 
-                className="h-10 object-contain"
-              />
-              <img 
-                src="/logos/opas.png" 
-                alt="OPAS" 
-                className="h-10 object-contain"
+                src="/logos/ESP.png" 
+                alt="ESP" 
+                className="h-12 object-contain"
               />
             </div>
           </div>
@@ -108,7 +115,7 @@ export function Layout({ children }: LayoutProps) {
                 Diagnóstico de Regulação em Saúde • Estado de São Paulo
               </p>
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
               <img 
                 src="/logos/einstein.png" 
                 alt="Einstein" 
@@ -117,7 +124,12 @@ export function Layout({ children }: LayoutProps) {
               <img 
                 src="/logos/opas.png" 
                 alt="OPAS" 
-                className="h-16 object-contain"
+                className="h-14 object-contain"
+              />
+              <img 
+                src="/logos/ESP.png" 
+                alt="ESP" 
+                className="h-10 object-contain"
               />
             </div>
           </div>

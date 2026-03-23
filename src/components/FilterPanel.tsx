@@ -5,9 +5,11 @@ interface FilterPanelProps {
   municipios: Municipio[];
   selectedRRAS: string | null;
   selectedDRS: string | null;
+  selectedRegiaoSaude: string | null;
   selectedMunicipio: string | null;
   onRRASChange: (value: string | null) => void;
   onDRSChange: (value: string | null) => void;
+  onRegiaoSaudeChange: (value: string | null) => void;
   onMunicipioChange: (value: string | null) => void;
 }
 
@@ -15,9 +17,11 @@ export function FilterPanel({
   municipios,
   selectedRRAS,
   selectedDRS,
+  selectedRegiaoSaude,
   selectedMunicipio,
   onRRASChange,
   onDRSChange,
+  onRegiaoSaudeChange,
   onMunicipioChange
 }: FilterPanelProps) {
   // Sort RRAS numerically (RRAS1, RRAS2, ... RRAS10, RRAS11, etc)
@@ -33,11 +37,23 @@ export function FilterPanel({
       .map(m => m.drs)
       .filter(Boolean)
   )].sort();
+
+  const regiaoSaudeList = [...new Set(
+    municipios
+      .filter(m => {
+        if (selectedRRAS && m.rras !== selectedRRAS) return false;
+        if (selectedDRS && m.drs !== selectedDRS) return false;
+        return true;
+      })
+      .map(m => m.regiaoSaude)
+      .filter(Boolean)
+  )].sort();
   
   const municipiosList = municipios
     .filter(m => {
       if (selectedRRAS && m.rras !== selectedRRAS) return false;
       if (selectedDRS && m.drs !== selectedDRS) return false;
+      if (selectedRegiaoSaude && m.regiaoSaude !== selectedRegiaoSaude) return false;
       return true;
     })
     .map(m => m.nome)
@@ -51,6 +67,12 @@ export function FilterPanel({
 
   const handleDRSChange = (value: string) => {
     onDRSChange(value || null);
+    onRegiaoSaudeChange(null);
+    onMunicipioChange(null);
+  };
+
+  const handleRegiaoSaudeChange = (value: string) => {
+    onRegiaoSaudeChange(value || null);
     onMunicipioChange(null);
   };
 
@@ -61,7 +83,7 @@ export function FilterPanel({
         <h3 className="font-semibold text-slate-700">Filtros</h3>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1">
             RRAS
@@ -94,6 +116,22 @@ export function FilterPanel({
           </select>
         </div>
         
+        <div>
+          <label className="block text-sm font-medium text-slate-600 mb-1">
+            Região de Saúde
+          </label>
+          <select
+            value={selectedRegiaoSaude || ''}
+            onChange={(e) => handleRegiaoSaudeChange(e.target.value)}
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+          >
+            <option value="">Todas as Regiões</option>
+            {regiaoSaudeList.map(regiao => (
+              <option key={regiao} value={regiao}>{regiao}</option>
+            ))}
+          </select>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1">
             Município

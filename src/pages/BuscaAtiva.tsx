@@ -9,6 +9,9 @@ import {
   calcularKPIs, 
   getMunicipiosPendentes,
   getMunicipiosRespondidos,
+  getMunicipiosEmAndamento,
+  getDRSRespondidas,
+  getDRSEmAndamento,
   normalizeNome
 } from '../utils/dataLoader';
 import type { Municipio, Resposta } from '../types';
@@ -24,6 +27,7 @@ export function BuscaAtiva() {
   
   const [selectedRRAS, setSelectedRRAS] = useState<string | null>(null);
   const [selectedDRS, setSelectedDRS] = useState<string | null>(null);
+  const [selectedRegiaoSaude, setSelectedRegiaoSaude] = useState<string | null>(null);
   const [selectedMunicipio, setSelectedMunicipio] = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,26 +57,18 @@ export function BuscaAtiva() {
   const kpis = calcularKPIs(municipios, respostas, filtro);
   const pendentes = getMunicipiosPendentes(municipios, respostas, filtro);
   const respondidosSet = getMunicipiosRespondidos(respostas, municipios);
+  const emAndamentoSet = getMunicipiosEmAndamento(respostas, municipios);
+  const drsRespondidasSet = getDRSRespondidas(respostas);
+  const drsEmAndamentoSet = getDRSEmAndamento(respostas);
 
   const municipiosFiltrados = municipios.filter(m => {
     if (selectedRRAS && m.rras !== selectedRRAS) return false;
     if (selectedDRS && m.drs !== selectedDRS) return false;
+    if (selectedRegiaoSaude && m.regiaoSaude !== selectedRegiaoSaude) return false;
     if (selectedMunicipio && m.nome !== selectedMunicipio) return false;
     return true;
   });
 
-  // Filtered pendentes for search
-  const filteredPendentes = pendentes.filter(m =>
-    m.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.drs.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.rras.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const totalPages = Math.ceil(filteredPendentes.length / itemsPerPage);
-  const paginatedPendentes = filteredPendentes.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
 
   // Stats by DRS for insights - ALL DRS
   const drsSummary = [...new Set(municipiosFiltrados.map(m => m.drs))].map(drs => {
@@ -80,7 +76,16 @@ export function BuscaAtiva() {
     const respondidos = municipiosFiltrados.filter(m => 
       m.drs === drs && respondidosSet.has(normalizeNome(m.nome))
     ).length;
-    return { drs, total, respondidos, percent: total > 0 ? (respondidos / total) * 100 : 0 };
+    const isDRSRespondida = drsRespondidasSet.has(drs);
+    const isDRSEmAndamento = drsEmAndamentoSet.has(drs);
+    return { 
+      drs, 
+      total, 
+      respondidos, 
+      percent: total > 0 ? (respondidos / total) * 100 : 0,
+      isDRSRespondida,
+      isDRSEmAndamento
+    };
   }).sort((a, b) => b.percent - a.percent);
 
   // Stats by RRAS for insights - ALL RRAS
@@ -89,8 +94,80 @@ export function BuscaAtiva() {
     const respondidos = municipiosFiltrados.filter(m => 
       m.rras === rras && respondidosSet.has(normalizeNome(m.nome))
     ).length;
-    return { rras, total, respondidos, percent: total > 0 ? (respondidos / total) * 100 : 0 };
+    const emAndamento = municipiosFiltrados.filter(m => 
+      m.rras === rras && emAndamentoSet.has(normalizeNome(m.nome))
+    ).length;
+    return { 
+      rras, 
+      total, 
+      respondidos, 
+      emAndamento,
+      percent: total > 0 ? (respondidos / total) * 100 : 0 
+    };
   }).sort((a, b) => b.percent - a.percent);
+
+  // Stats by Região de Saúde
+  // Verde (completa) apenas quando 100% dos municípios da região respondem
+  const regiaoSaudeSummary = [...new Set(municipiosFiltrados.map(m => m.regiaoSaude).filter(r => r))].map(regiao => {
+    const total = municipiosFiltrados.filter(m => m.regiaoSaude === regiao).length;
+    const respondidos = municipiosFiltrados.filter(m => 
+      m.regiaoSaude === regiao && respondidosSet.has(normalizeNome(m.nome))
+    ).length;
+    const emAndamento = municipiosFiltrados.filter(m => 
+      m.regiaoSaude === regiao && emAndamentoSet.has(normalizeNome(m.nome))
+    ).length;
+    // Região completa apenas quando TODOS os municípios responderam
+    const isRegiaoCompleta = total > 0 && respondidos === total;
+    // Em andamento se tem algum respondido ou em andamento, mas não todos
+    const isRegiaoEmAndamento = !isRegiaoCompleta && (respondidos > 0 || emAndamento > 0);
+    return { 
+      regiao, 
+      total, 
+      respondidos, 
+      emAndamento,
+      percent: total > 0 ? (respondidos / total) * 100 : 0,
+      isRegiaoCompleta,
+      isRegiaoEmAndamento
+    };
+  }).sort((a, b) => b.percent - a.percent);
+
+  // Função para determinar status do município
+  const getStatusMunicipio = (municipio: Municipio): 'respondido' | 'em_andamento' | 'pendente' => {
+    const nomeNorm = normalizeNome(municipio.nome);
+    if (respondidosSet.has(nomeNorm)) return 'respondido';
+    if (emAndamentoSet.has(nomeNorm)) return 'em_andamento';
+    return 'pendente';
+  };
+
+  // Função para determinar status da DRS
+  const getStatusDRS = (drs: string): 'respondido' | 'em_andamento' | 'pendente' => {
+    if (drsRespondidasSet.has(drs)) return 'respondido';
+    if (drsEmAndamentoSet.has(drs)) return 'em_andamento';
+    return 'pendente';
+  };
+
+  // Todos os municípios filtrados com status (para tabela completa)
+  const todosMunicipiosComStatus = municipiosFiltrados.map(m => ({
+    ...m,
+    status: getStatusMunicipio(m)
+  })).sort((a, b) => {
+    // Ordenar: pendentes primeiro, depois em andamento, depois respondidos
+    const ordem: Record<'pendente' | 'em_andamento' | 'respondido', number> = { pendente: 0, em_andamento: 1, respondido: 2 };
+    return ordem[a.status] - ordem[b.status] || a.nome.localeCompare(b.nome);
+  });
+
+  // Filtrar pela busca
+  const municipiosFiltradosBusca = todosMunicipiosComStatus.filter(m =>
+    m.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    m.drs.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    m.rras.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPagesMunicipios = Math.ceil(municipiosFiltradosBusca.length / itemsPerPage);
+  const paginatedMunicipios = municipiosFiltradosBusca.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   if (loading) {
     return (
@@ -130,7 +207,7 @@ export function BuscaAtiva() {
             <span className="text-teal-100 font-medium">Visão Geral do Diagnóstico</span>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {/* Municípios */}
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
@@ -206,6 +283,31 @@ export function BuscaAtiva() {
               </div>
             </motion.div>
 
+            {/* Regiões de Saúde */}
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.35 }}
+              className="bg-white/10 backdrop-blur-sm rounded-xl p-4"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <MapPin className="w-5 h-5 text-teal-200" />
+                <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                  {kpis.percentualRegioesSaude.toFixed(1)}%
+                </span>
+              </div>
+              <p className="text-3xl font-bold">{kpis.regioesSaudeRespondidas}</p>
+              <p className="text-teal-100 text-sm">de {kpis.totalRegioesSaude} Regiões completas</p>
+              <div className="mt-2 h-1 bg-white/20 rounded-full overflow-hidden">
+                <motion.div 
+                  className="h-full bg-white rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${kpis.percentualRegioesSaude}%` }}
+                  transition={{ duration: 1, delay: 0.55 }}
+                />
+              </div>
+            </motion.div>
+
             {/* Pendentes */}
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
@@ -239,174 +341,270 @@ export function BuscaAtiva() {
         municipios={municipios}
         selectedRRAS={selectedRRAS}
         selectedDRS={selectedDRS}
+        selectedRegiaoSaude={selectedRegiaoSaude}
         selectedMunicipio={selectedMunicipio}
         onRRASChange={setSelectedRRAS}
         onDRSChange={setSelectedDRS}
+        onRegiaoSaudeChange={setSelectedRegiaoSaude}
         onMunicipioChange={setSelectedMunicipio}
       />
 
-      {/* Main Content: Map + Side Panels */}
+      {/* Panels DRS, RRAS and Região de Saúde */}
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="grid grid-cols-1 xl:grid-cols-3 gap-6"
+        className="grid grid-cols-1 md:grid-cols-3 gap-6"
       >
-        {/* Map - Takes 2 columns on xl screens */}
-        <div className="xl:col-span-2">
-          <SPMapLeaflet
-            respondidos={respondidosSet}
-            onMunicipioClick={setSelectedMunicipio}
-            filteredDRS={selectedDRS}
-            filteredRRAS={selectedRRAS}
-          />
-        </div>
-
-        {/* Side Panels - DRS and RRAS */}
-        <div className="space-y-4">
-          {/* DRS Panel */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-3 border-b border-slate-100 bg-gradient-to-r from-teal-50 to-white">
-              <div className="flex items-center gap-2">
-                <div className="bg-gradient-to-br from-teal-500 to-emerald-600 p-1.5 rounded-lg">
-                  <Building2 className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-800 text-sm">Progresso por DRS</h3>
-                  <p className="text-xs text-slate-500">{drsSummary.length} DRS</p>
-                </div>
+        {/* DRS Panel */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-3 border-b border-slate-100 bg-gradient-to-r from-teal-50 to-white">
+            <div className="flex items-center gap-2">
+              <div className="bg-gradient-to-br from-teal-500 to-emerald-600 p-1.5 rounded-lg">
+                <Building2 className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800 text-sm">Progresso por DRS</h3>
+                <p className="text-xs text-slate-500">{drsSummary.length} DRS • {kpis.drsCompletas} completas</p>
               </div>
             </div>
-            <div className="p-3 space-y-2 max-h-[280px] overflow-y-auto">
-              {drsSummary.map((item, index) => (
-                <motion.div 
-                  key={item.drs}
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.02 * index }}
-                  onClick={() => setSelectedDRS(selectedDRS === item.drs ? null : item.drs)}
-                  className={`p-2 rounded-lg cursor-pointer transition-all ${
-                    selectedDRS === item.drs ? 'ring-2 ring-teal-500 bg-teal-50' :
-                    item.percent === 100 ? 'bg-emerald-50 hover:bg-emerald-100' : 
-                    item.percent === 0 ? 'bg-red-50 hover:bg-red-100' :
-                    'bg-slate-50 hover:bg-slate-100'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`font-medium text-xs truncate flex-1 ${
-                      item.percent === 100 ? 'text-emerald-700' : 
-                      item.percent === 0 ? 'text-red-700' :
+          </div>
+          <div className="p-3 space-y-2 max-h-[320px] overflow-y-auto">
+            {drsSummary.map((item, index) => (
+              <motion.div 
+                key={item.drs}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.02 * index }}
+                onClick={() => setSelectedDRS(selectedDRS === item.drs ? null : item.drs)}
+                className={`p-2 rounded-lg cursor-pointer transition-all ${
+                  selectedDRS === item.drs ? 'ring-2 ring-teal-500 bg-teal-50' :
+                  item.isDRSRespondida ? 'bg-emerald-50 hover:bg-emerald-100' : 
+                  item.isDRSEmAndamento ? 'bg-amber-50 hover:bg-amber-100' :
+                  item.percent === 0 ? 'bg-red-50 hover:bg-red-100' :
+                  'bg-slate-50 hover:bg-slate-100'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {/* Semáforo DRS */}
+                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                      item.isDRSRespondida ? 'bg-emerald-500' : 
+                      item.isDRSEmAndamento ? 'bg-amber-400' :
+                      'bg-red-400'
+                    }`} />
+                    <span className={`font-medium text-xs truncate ${
+                      item.isDRSRespondida ? 'text-emerald-700' : 
+                      item.isDRSEmAndamento ? 'text-amber-700' :
                       'text-slate-700'
                     }`}>
                       {item.drs}
                     </span>
-                    <div className="flex items-center gap-1 ml-2">
-                      {item.percent === 100 && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
-                      <span className={`text-xs font-semibold ${
-                        item.percent === 100 ? 'text-emerald-600' : 
-                        item.percent === 0 ? 'text-red-500' :
-                        'text-teal-600'
-                      }`}>
-                        {item.respondidos}/{item.total}
-                      </span>
-                    </div>
                   </div>
-                  <div className="h-1 bg-white rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full ${
-                        item.percent === 100 ? 'bg-emerald-500' : 
-                        item.percent === 0 ? 'bg-red-300' :
-                        'bg-teal-400'
-                      }`}
-                      style={{ width: `${item.percent}%` }}
-                    />
+                  <div className="flex items-center gap-1 ml-2">
+                    {item.isDRSRespondida && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
+                    <span className={`text-xs font-semibold ${
+                      item.isDRSRespondida ? 'text-emerald-600' : 
+                      item.isDRSEmAndamento ? 'text-amber-600' :
+                      'text-teal-600'
+                    }`}>
+                      {item.respondidos}/{item.total}
+                    </span>
                   </div>
-                </motion.div>
-              ))}
-            </div>
+                </div>
+                <div className="h-1 bg-white rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full ${
+                      item.isDRSRespondida ? 'bg-emerald-500' : 
+                      item.isDRSEmAndamento ? 'bg-amber-400' :
+                      item.percent === 0 ? 'bg-red-300' :
+                      'bg-teal-400'
+                    }`}
+                    style={{ width: `${item.percent}%` }}
+                  />
+                </div>
+              </motion.div>
+            ))}
           </div>
+        </div>
 
-          {/* RRAS Panel */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-3 border-b border-slate-100 bg-gradient-to-r from-cyan-50 to-white">
-              <div className="flex items-center gap-2">
-                <div className="bg-gradient-to-br from-cyan-500 to-teal-600 p-1.5 rounded-lg">
-                  <Network className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-800 text-sm">Progresso por RRAS</h3>
-                  <p className="text-xs text-slate-500">{rrasSummary.length} RRAS</p>
-                </div>
+        {/* RRAS Panel */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-3 border-b border-slate-100 bg-gradient-to-r from-cyan-50 to-white">
+            <div className="flex items-center gap-2">
+              <div className="bg-gradient-to-br from-cyan-500 to-teal-600 p-1.5 rounded-lg">
+                <Network className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800 text-sm">Progresso por RRAS</h3>
+                <p className="text-xs text-slate-500">{rrasSummary.length} RRAS • {kpis.rrasCobertas} completas</p>
               </div>
             </div>
-            <div className="p-3 space-y-2 max-h-[280px] overflow-y-auto">
-              {rrasSummary.map((item, index) => (
-                <motion.div 
-                  key={item.rras}
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.02 * index }}
-                  onClick={() => setSelectedRRAS(selectedRRAS === item.rras ? null : item.rras)}
-                  className={`p-2 rounded-lg cursor-pointer transition-all ${
-                    selectedRRAS === item.rras ? 'ring-2 ring-cyan-500 bg-cyan-50' :
-                    item.percent === 100 ? 'bg-emerald-50 hover:bg-emerald-100' : 
-                    item.percent === 0 ? 'bg-red-50 hover:bg-red-100' :
-                    'bg-slate-50 hover:bg-slate-100'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`font-medium text-xs truncate flex-1 ${
+          </div>
+          <div className="p-3 space-y-2 max-h-[320px] overflow-y-auto">
+            {rrasSummary.map((item, index) => (
+              <motion.div 
+                key={item.rras}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.02 * index }}
+                onClick={() => setSelectedRRAS(selectedRRAS === item.rras ? null : item.rras)}
+                className={`p-2 rounded-lg cursor-pointer transition-all ${
+                  selectedRRAS === item.rras ? 'ring-2 ring-cyan-500 bg-cyan-50' :
+                  item.percent === 100 ? 'bg-emerald-50 hover:bg-emerald-100' : 
+                  item.emAndamento > 0 ? 'bg-amber-50 hover:bg-amber-100' :
+                  item.percent === 0 ? 'bg-red-50 hover:bg-red-100' :
+                  'bg-slate-50 hover:bg-slate-100'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {/* Semáforo RRAS */}
+                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                      item.percent === 100 ? 'bg-emerald-500' : 
+                      item.respondidos > 0 || item.emAndamento > 0 ? 'bg-amber-400' :
+                      'bg-red-400'
+                    }`} />
+                    <span className={`font-medium text-xs truncate ${
                       item.percent === 100 ? 'text-emerald-700' : 
-                      item.percent === 0 ? 'text-red-700' :
+                      item.respondidos > 0 || item.emAndamento > 0 ? 'text-amber-700' :
                       'text-slate-700'
                     }`}>
                       {item.rras}
                     </span>
-                    <div className="flex items-center gap-1 ml-2">
-                      {item.percent === 100 && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
-                      <span className={`text-xs font-semibold ${
-                        item.percent === 100 ? 'text-emerald-600' : 
-                        item.percent === 0 ? 'text-red-500' :
-                        'text-cyan-600'
-                      }`}>
-                        {item.respondidos}/{item.total}
-                      </span>
-                    </div>
                   </div>
-                  <div className="h-1 bg-white rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full ${
-                        item.percent === 100 ? 'bg-emerald-500' : 
-                        item.percent === 0 ? 'bg-red-300' :
-                        'bg-cyan-400'
-                      }`}
-                      style={{ width: `${item.percent}%` }}
-                    />
+                  <div className="flex items-center gap-1 ml-2">
+                    {item.percent === 100 && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
+                    <span className={`text-xs font-semibold ${
+                      item.percent === 100 ? 'text-emerald-600' : 
+                      item.respondidos > 0 ? 'text-amber-600' :
+                      'text-cyan-600'
+                    }`}>
+                      {item.respondidos}/{item.total}
+                    </span>
                   </div>
-                </motion.div>
-              ))}
+                </div>
+                <div className="h-1 bg-white rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full ${
+                      item.percent === 100 ? 'bg-emerald-500' : 
+                      item.respondidos > 0 ? 'bg-amber-400' :
+                      item.percent === 0 ? 'bg-red-300' :
+                      'bg-cyan-400'
+                    }`}
+                    style={{ width: `${item.percent}%` }}
+                  />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        {/* Região de Saúde Panel */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-3 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-white">
+            <div className="flex items-center gap-2">
+              <div className="bg-gradient-to-br from-purple-500 to-indigo-600 p-1.5 rounded-lg">
+                <MapPin className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800 text-sm">Progresso por Região de Saúde</h3>
+                <p className="text-xs text-slate-500">{regiaoSaudeSummary.length} regiões • {kpis.regioesSaudeRespondidas} respondidas</p>
+              </div>
             </div>
+          </div>
+          <div className="p-3 space-y-2 max-h-[320px] overflow-y-auto">
+            {regiaoSaudeSummary.map((item, index) => (
+              <motion.div 
+                key={item.regiao}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.02 * index }}
+                className={`p-2 rounded-lg transition-all ${
+                  item.isRegiaoCompleta ? 'bg-emerald-50 hover:bg-emerald-100' : 
+                  item.isRegiaoEmAndamento ? 'bg-amber-50 hover:bg-amber-100' :
+                  item.percent === 0 ? 'bg-red-50 hover:bg-red-100' :
+                  'bg-slate-50 hover:bg-slate-100'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {/* Semáforo Região de Saúde */}
+                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                      item.isRegiaoCompleta ? 'bg-emerald-500' : 
+                      item.isRegiaoEmAndamento ? 'bg-amber-400' :
+                      'bg-red-400'
+                    }`} />
+                    <span className={`font-medium text-xs truncate ${
+                      item.isRegiaoCompleta ? 'text-emerald-700' : 
+                      item.isRegiaoEmAndamento ? 'text-amber-700' :
+                      'text-slate-700'
+                    }`}>
+                      {item.regiao}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 ml-2">
+                    {item.isRegiaoCompleta && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
+                    <span className={`text-xs font-semibold ${
+                      item.isRegiaoCompleta ? 'text-emerald-600' : 
+                      item.isRegiaoEmAndamento ? 'text-amber-600' :
+                      'text-purple-600'
+                    }`}>
+                      {item.respondidos}/{item.total}
+                    </span>
+                  </div>
+                </div>
+                <div className="h-1 bg-white rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full ${
+                      item.isRegiaoCompleta ? 'bg-emerald-500' : 
+                      item.isRegiaoEmAndamento ? 'bg-amber-400' :
+                      item.percent === 0 ? 'bg-red-300' :
+                      'bg-purple-400'
+                    }`}
+                    style={{ width: `${item.percent}%` }}
+                  />
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </motion.div>
 
-      {/* Enhanced Pending Table */}
+      {/* Map - Full width below tables */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <SPMapLeaflet
+          respondidos={respondidosSet}
+          onMunicipioClick={setSelectedMunicipio}
+          filteredDRS={selectedDRS}
+          filteredRRAS={selectedRRAS}
+        />
+      </motion.div>
+
+      {/* Enhanced Municipalities Table with Traffic Lights */}
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
         className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
       >
-        <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-amber-50 to-white">
+        <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-amber-500 to-orange-500 p-2.5 rounded-xl">
+              <div className="bg-gradient-to-br from-teal-500 to-emerald-600 p-2.5 rounded-xl">
                 <Users className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-800">Municípios Pendentes</h3>
+                <h3 className="font-semibold text-slate-800">Status dos Municípios</h3>
                 <p className="text-xs text-slate-500">
-                  {filteredPendentes.length} municípios aguardando resposta
+                  {municipiosFiltradosBusca.length} municípios • 
+                  <span className="text-emerald-600 ml-1">{municipiosFiltradosBusca.filter(m => m.status === 'respondido').length} respondidos</span> • 
+                  <span className="text-amber-600 ml-1">{municipiosFiltradosBusca.filter(m => m.status === 'em_andamento').length} em andamento</span> • 
+                  <span className="text-red-600 ml-1">{municipiosFiltradosBusca.filter(m => m.status === 'pendente').length} pendentes</span>
                 </p>
               </div>
             </div>
@@ -426,28 +624,22 @@ export function BuscaAtiva() {
           </div>
         </div>
 
-        {/* Summary by RRAS */}
+        {/* Legend */}
         <div className="p-4 border-b border-slate-100 bg-slate-50">
-          <p className="text-xs font-medium text-slate-500 mb-3">Distribuição por RRAS</p>
-          <div className="flex flex-wrap gap-2">
-            {[...new Set(pendentes.map(m => m.rras))].slice(0, 8).map(rras => {
-              const count = pendentes.filter(m => m.rras === rras).length;
-              return (
-                <motion.button
-                  key={rras}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelectedRRAS(selectedRRAS === rras ? null : rras)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    selectedRRAS === rras 
-                      ? 'bg-teal-500 text-white shadow-md' 
-                      : 'bg-white border border-slate-200 text-slate-600 hover:border-teal-300'
-                  }`}
-                >
-                  {rras} <span className="opacity-70">({count})</span>
-                </motion.button>
-              );
-            })}
+          <p className="text-xs font-medium text-slate-500 mb-3">Legenda dos Semáforos</p>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+              <span className="text-xs text-slate-600">Respondido</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+              <span className="text-xs text-slate-600">Em andamento</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-red-400"></div>
+              <span className="text-xs text-slate-600">Pendente</span>
+            </div>
           </div>
         </div>
 
@@ -471,50 +663,76 @@ export function BuscaAtiva() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paginatedPendentes.map((municipio, index) => (
-                <motion.tr 
-                  key={municipio.codigo}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.03 * index }}
-                  className="hover:bg-teal-50/50 transition-colors"
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                      <span className="text-sm font-medium text-slate-800">{municipio.nome}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{municipio.drs}</td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md">
-                      {municipio.rras}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-500">{municipio.regiaoSaude}</td>
-                </motion.tr>
-              ))}
+              {paginatedMunicipios.map((municipio, index) => {
+                const drsStatus = getStatusDRS(municipio.drs);
+                return (
+                  <motion.tr 
+                    key={municipio.codigo}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.03 * index }}
+                    className={`transition-colors ${
+                      municipio.status === 'respondido' ? 'bg-emerald-50/30 hover:bg-emerald-50' :
+                      municipio.status === 'em_andamento' ? 'bg-amber-50/30 hover:bg-amber-50' :
+                      'hover:bg-red-50/30'
+                    }`}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {/* Semáforo do Município */}
+                        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                          municipio.status === 'respondido' ? 'bg-emerald-500' :
+                          municipio.status === 'em_andamento' ? 'bg-amber-400' :
+                          'bg-red-400'
+                        }`}></div>
+                        <span className={`text-sm font-medium ${
+                          municipio.status === 'respondido' ? 'text-emerald-700' :
+                          municipio.status === 'em_andamento' ? 'text-amber-700' :
+                          'text-slate-800'
+                        }`}>{municipio.nome}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {/* Semáforo da DRS */}
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                          drsStatus === 'respondido' ? 'bg-emerald-500' :
+                          drsStatus === 'em_andamento' ? 'bg-amber-400' :
+                          'bg-red-400'
+                        }`}></div>
+                        <span className="text-sm text-slate-600">{municipio.drs}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md">
+                        {municipio.rras}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-500">{municipio.regiaoSaude}</td>
+                  </motion.tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {totalPagesMunicipios > 1 && (
           <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50">
             <p className="text-sm text-slate-600">
               Mostrando <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> a{' '}
-              <span className="font-medium">{Math.min(currentPage * itemsPerPage, filteredPendentes.length)}</span> de{' '}
-              <span className="font-medium">{filteredPendentes.length}</span>
+              <span className="font-medium">{Math.min(currentPage * itemsPerPage, municipiosFiltradosBusca.length)}</span> de{' '}
+              <span className="font-medium">{municipiosFiltradosBusca.length}</span>
             </p>
             <div className="flex gap-1">
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              {Array.from({ length: Math.min(totalPagesMunicipios, 5) }, (_, i) => {
                 let pageNum;
-                if (totalPages <= 5) {
+                if (totalPagesMunicipios <= 5) {
                   pageNum = i + 1;
                 } else if (currentPage <= 3) {
                   pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
+                } else if (currentPage >= totalPagesMunicipios - 2) {
+                  pageNum = totalPagesMunicipios - 4 + i;
                 } else {
                   pageNum = currentPage - 2 + i;
                 }

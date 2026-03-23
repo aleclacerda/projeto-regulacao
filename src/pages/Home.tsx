@@ -23,8 +23,12 @@ export function Home() {
     municipiosRespondidos: 0,
     percentualRespondido: 0,
     totalDRS: 0,
+    drsCompletas: 0,
+    percentualDRS: 0,
     respostasCompletas: 0,
-    respostasEmAndamento: 0
+    respostasEmAndamento: 0,
+    totalQuestionarios: 0,
+    percentualQuestionarios: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -38,11 +42,14 @@ export function Home() {
         const kpis = calcularKPIs(municipios, respostas);
         const completas = respostas.filter(r => r.complete).length;
         const emAndamento = respostas.filter(r => !r.complete && r.recordId).length;
+        const totalQ = respostas.filter(r => r.recordId).length;
         
         setStats({
           ...kpis,
           respostasCompletas: completas,
-          respostasEmAndamento: emAndamento
+          respostasEmAndamento: emAndamento,
+          totalQuestionarios: totalQ,
+          percentualQuestionarios: totalQ > 0 ? (completas / totalQ) * 100 : 0
         });
       } catch (err) {
         console.error(err);
@@ -128,13 +135,14 @@ export function Home() {
             </motion.div>
           </div>
 
-          {/* Progress Circle */}
+          {/* Progress Circles */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4, type: "spring" }}
-            className="relative"
+            className="flex flex-col items-center gap-4"
           >
+            {/* Círculo principal - Municípios */}
             <div className="w-48 h-48 relative">
               <svg className="w-full h-full transform -rotate-90">
                 <circle
@@ -170,6 +178,26 @@ export function Home() {
                 <span className="text-emerald-100 text-sm">Respondido</span>
               </div>
             </div>
+            
+            {/* Indicador DRS */}
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }}
+              className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2 text-center"
+            >
+              <div className="flex items-center gap-3">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-white">{loading ? '...' : stats.drsCompletas}</p>
+                  <p className="text-xs text-emerald-100">de {loading ? '...' : stats.totalDRS} DRS</p>
+                </div>
+                <div className="w-px h-8 bg-white/30"></div>
+                <div className="text-center">
+                  <p className="text-lg font-semibold text-white">{loading ? '...' : `${stats.percentualDRS.toFixed(0)}%`}</p>
+                  <p className="text-xs text-emerald-100">completas</p>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         </div>
 
@@ -212,10 +240,18 @@ export function Home() {
             <div className="bg-gradient-to-br from-cyan-500 to-teal-600 p-3 rounded-xl">
               <Users className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xs font-medium text-cyan-600 bg-cyan-50 px-2 py-1 rounded-full">Completos</span>
+            <div className="flex items-center gap-1 text-cyan-600">
+              <TrendingUp className="w-4 h-4" />
+              <span className="text-xs font-medium">{loading ? '...' : `${stats.percentualQuestionarios.toFixed(1)}%`}</span>
+            </div>
           </div>
-          <p className="text-3xl font-bold text-cyan-600">{loading ? '...' : stats.respostasCompletas}</p>
-          <p className="text-sm text-slate-500 mt-1">Questionários</p>
+          <p className="text-3xl font-bold text-cyan-600">{loading ? '...' : stats.totalQuestionarios}</p>
+          <p className="text-sm text-slate-500 mt-1">Questionários Respondidos</p>
+          <div className="mt-2 flex items-center gap-2 text-xs">
+            <span className="text-emerald-600 font-medium">{loading ? '...' : stats.respostasCompletas} completos</span>
+            <span className="text-slate-300">|</span>
+            <span className="text-amber-600 font-medium">{loading ? '...' : stats.respostasEmAndamento} em andamento</span>
+          </div>
         </motion.div>
 
         <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">

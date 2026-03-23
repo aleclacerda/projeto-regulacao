@@ -20,6 +20,7 @@ export interface Resposta {
   instituicao: string;
   drs: string;
   municipiosRespondidos: string[];
+  regioesSaudeRespondidas: string[];
   complete: boolean;
   respostas: Record<string, string>;
 }
@@ -34,6 +35,12 @@ export interface KPIData {
   totalRRAS: number;
   rrasCobertas: number;
   percentualRRAS: number;
+  totalRegioesSaude: number;
+  regioesSaudeRespondidas: number;
+  percentualRegioesSaude: number;
+  questionariosCompletos: number;
+  totalQuestionarios: number;
+  percentualQuestionarios: number;
 }
 
 export interface FilterState {
