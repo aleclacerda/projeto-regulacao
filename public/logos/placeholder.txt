@@ -1,0 +1,4 @@
+Adicione os logos aqui:
+- einstein.png - Logo do Hospital Israelita Albert Einstein
+- opas.png - Logo da OPAS (Organização Pan-Americana da Saúde)
+- ses-sp.png - Logo da Secretaria de Estado da Saúde de São Paulo
