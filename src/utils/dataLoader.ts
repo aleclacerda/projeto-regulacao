@@ -152,7 +152,7 @@ export async function loadRespostas(): Promise<Resposta[]> {
 }
 
 // Retorna municípios com resposta parcial (iniciaram mas não completaram)
-// Considera apenas respostas de MUNICÍPIOS (não de DRS)
+// Considera respostas de MUNICÍPIOS e também de DRS incompletas
 export function getMunicipiosEmAndamento(respostas: Resposta[], municipiosBase?: Municipio[]): Set<string> {
   const emAndamento = new Set<string>();
   const completos = getMunicipiosRespondidos(respostas, municipiosBase);
@@ -162,8 +162,8 @@ export function getMunicipiosEmAndamento(respostas: Resposta[], municipiosBase?:
     : null;
   
   for (const resposta of respostas) {
-    // Resposta iniciada mas não completa, apenas de MUNICÍPIOS
-    if (!resposta.complete && resposta.recordId && resposta.timestamp && resposta.instituicao === 'Municipio') {
+    // Resposta iniciada mas não completa (qualquer instituição)
+    if (!resposta.complete && resposta.recordId) {
       for (const municipio of resposta.municipiosRespondidos) {
         const normalizado = normalizeNome(municipio);
         // Só adiciona se não está completo e é válido
