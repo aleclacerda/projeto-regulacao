@@ -71,6 +71,19 @@ function isRegiaoSaudeColumn(colName: string): boolean {
   return !isDRSColumn(colName);
 }
 
+export async function getDataAtualizacao(): Promise<Date | null> {
+  try {
+    const response = await fetch('/data/respostas.csv', { method: 'HEAD' });
+    const lastModified = response.headers.get('Last-Modified');
+    if (lastModified) {
+      return new Date(lastModified);
+    }
+  } catch (err) {
+    console.error('Erro ao buscar data de atualização:', err);
+  }
+  return null;
+}
+
 export async function loadRespostas(): Promise<Resposta[]> {
   const response = await fetch('/data/respostas.csv');
   let text = await response.text();

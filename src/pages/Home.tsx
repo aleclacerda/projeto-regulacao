@@ -15,7 +15,7 @@ import {
   HeartPulse,
   Circle
 } from 'lucide-react';
-import { loadMunicipios, loadRespostas, calcularKPIs } from '../utils/dataLoader';
+import { loadMunicipios, loadRespostas, calcularKPIs, getDataAtualizacao } from '../utils/dataLoader';
 
 export function Home() {
   const [stats, setStats] = useState({
@@ -31,14 +31,17 @@ export function Home() {
     percentualQuestionarios: 0
   });
   const [loading, setLoading] = useState(true);
+  const [dataAtualizacao, setDataAtualizacao] = useState<Date | null>(null);
 
   useEffect(() => {
     async function loadStats() {
       try {
-        const [municipios, respostas] = await Promise.all([
+        const [municipios, respostas, dataAtual] = await Promise.all([
           loadMunicipios(),
-          loadRespostas()
+          loadRespostas(),
+          getDataAtualizacao()
         ]);
+        setDataAtualizacao(dataAtual);
         const kpis = calcularKPIs(municipios, respostas);
         const completas = respostas.filter(r => r.complete).length;
         const emAndamento = respostas.filter(r => !r.complete && r.recordId).length;
@@ -100,6 +103,11 @@ export function Home() {
                 <HeartPulse className="w-6 h-6 text-white" />
               </div>
               <span className="text-emerald-100 font-medium">Diagnóstico de Regulação em Saúde</span>
+              {dataAtualizacao && (
+                <span className="ml-3 text-xs bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full text-white">
+                  Atualizado em {dataAtualizacao.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
             </motion.div>
             
             <motion.h1 
@@ -135,69 +143,106 @@ export function Home() {
             </motion.div>
           </div>
 
-          {/* Progress Circles */}
+          {/* Progress Circles - Municípios e DRS lado a lado */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4, type: "spring" }}
-            className="flex flex-col items-center gap-4"
+            className="flex items-center gap-8"
           >
-            {/* Círculo principal - Municípios */}
-            <div className="w-48 h-48 relative">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle
-                  cx="96"
-                  cy="96"
-                  r="88"
-                  stroke="rgba(255,255,255,0.2)"
-                  strokeWidth="12"
-                  fill="none"
-                />
-                <motion.circle
-                  cx="96"
-                  cy="96"
-                  r="88"
-                  stroke="white"
-                  strokeWidth="12"
-                  fill="none"
-                  strokeLinecap="round"
-                  initial={{ strokeDasharray: "0 553" }}
-                  animate={{ strokeDasharray: `${(progressPercent / 100) * 553} 553` }}
-                  transition={{ duration: 1.5, delay: 0.5, ease: "easeOut" }}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <motion.span 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 1 }}
-                  className="text-4xl font-bold text-white"
-                >
-                  {loading ? '...' : `${progressPercent.toFixed(0)}%`}
-                </motion.span>
-                <span className="text-emerald-100 text-sm">Respondido</span>
+            {/* Círculo - Municípios */}
+            <div className="flex flex-col items-center">
+              <div className="w-40 h-40 relative">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle
+                    cx="80"
+                    cy="80"
+                    r="72"
+                    stroke="rgba(255,255,255,0.2)"
+                    strokeWidth="10"
+                    fill="none"
+                  />
+                  <motion.circle
+                    cx="80"
+                    cy="80"
+                    r="72"
+                    stroke="white"
+                    strokeWidth="10"
+                    fill="none"
+                    strokeLinecap="round"
+                    initial={{ strokeDasharray: "0 452" }}
+                    animate={{ strokeDasharray: `${(progressPercent / 100) * 452} 452` }}
+                    transition={{ duration: 1.5, delay: 0.5, ease: "easeOut" }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <motion.span 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1 }}
+                    className="text-3xl font-bold text-white"
+                  >
+                    {loading ? '...' : `${progressPercent.toFixed(0)}%`}
+                  </motion.span>
+                </div>
               </div>
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2 text-center mt-3"
+              >
+                <p className="text-lg font-bold text-white">{loading ? '...' : stats.municipiosRespondidos}</p>
+                <p className="text-xs text-emerald-100">de {loading ? '...' : stats.totalMunicipios} municípios</p>
+              </motion.div>
             </div>
-            
-            {/* Indicador DRS */}
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2 text-center"
-            >
-              <div className="flex items-center gap-3">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-white">{loading ? '...' : stats.drsCompletas}</p>
-                  <p className="text-xs text-emerald-100">de {loading ? '...' : stats.totalDRS} DRS</p>
-                </div>
-                <div className="w-px h-8 bg-white/30"></div>
-                <div className="text-center">
-                  <p className="text-lg font-semibold text-white">{loading ? '...' : `${stats.percentualDRS.toFixed(0)}%`}</p>
-                  <p className="text-xs text-emerald-100">completas</p>
+
+            {/* Círculo - DRS */}
+            <div className="flex flex-col items-center">
+              <div className="w-40 h-40 relative">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle
+                    cx="80"
+                    cy="80"
+                    r="72"
+                    stroke="rgba(255,255,255,0.2)"
+                    strokeWidth="10"
+                    fill="none"
+                  />
+                  <motion.circle
+                    cx="80"
+                    cy="80"
+                    r="72"
+                    stroke="white"
+                    strokeWidth="10"
+                    fill="none"
+                    strokeLinecap="round"
+                    initial={{ strokeDasharray: "0 452" }}
+                    animate={{ strokeDasharray: `${(stats.percentualDRS / 100) * 452} 452` }}
+                    transition={{ duration: 1.5, delay: 0.7, ease: "easeOut" }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <motion.span 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.2 }}
+                    className="text-3xl font-bold text-white"
+                  >
+                    {loading ? '...' : `${stats.percentualDRS.toFixed(0)}%`}
+                  </motion.span>
                 </div>
               </div>
-            </motion.div>
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1 }}
+                className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2 text-center mt-3"
+              >
+                <p className="text-lg font-bold text-white">{loading ? '...' : stats.drsCompletas}</p>
+                <p className="text-xs text-emerald-100">de {loading ? '...' : stats.totalDRS} DRS</p>
+              </motion.div>
+            </div>
           </motion.div>
         </div>
 

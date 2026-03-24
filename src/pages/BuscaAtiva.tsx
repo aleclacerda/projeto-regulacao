@@ -29,6 +29,8 @@ export function BuscaAtiva() {
   const [selectedDRS, setSelectedDRS] = useState<string | null>(null);
   const [selectedRegiaoSaude, setSelectedRegiaoSaude] = useState<string | null>(null);
   const [selectedMunicipio, setSelectedMunicipio] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<'todos' | 'respondido' | 'em_andamento' | 'pendente'>('todos');
+  const [statusFilterType, setStatusFilterType] = useState<'municipio' | 'drs'>('municipio');
 
   useEffect(() => {
     async function loadData() {
@@ -156,12 +158,43 @@ export function BuscaAtiva() {
     return ordem[a.status] - ordem[b.status] || a.nome.localeCompare(b.nome);
   });
 
-  // Filtrar pela busca
-  const municipiosFiltradosBusca = todosMunicipiosComStatus.filter(m =>
-    m.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.drs.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.rras.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtrar pela busca e status (por município ou por DRS)
+  const municipiosFiltradosBusca = todosMunicipiosComStatus.filter(m => {
+    const matchSearch = m.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.drs.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.rras.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    let matchStatus = true;
+    if (selectedStatus !== 'todos') {
+      if (statusFilterType === 'municipio') {
+        matchStatus = m.status === selectedStatus;
+      } else {
+        // Filtrar por status da DRS
+        const drsStatus = getStatusDRS(m.drs);
+        matchStatus = drsStatus === selectedStatus;
+      }
+    }
+    return matchSearch && matchStatus;
+  });
+
+  // Contadores para os filtros
+  const countByMunicipio = {
+    total: todosMunicipiosComStatus.length,
+    respondido: todosMunicipiosComStatus.filter(m => m.status === 'respondido').length,
+    em_andamento: todosMunicipiosComStatus.filter(m => m.status === 'em_andamento').length,
+    pendente: todosMunicipiosComStatus.filter(m => m.status === 'pendente').length
+  };
+
+  // Contar DRS únicos por status
+  const allDRSList = [...new Set(todosMunicipiosComStatus.map(m => m.drs))];
+  const countByDRS = {
+    total: allDRSList.length,
+    respondido: allDRSList.filter(drs => getStatusDRS(drs) === 'respondido').length,
+    em_andamento: allDRSList.filter(drs => getStatusDRS(drs) === 'em_andamento').length,
+    pendente: allDRSList.filter(drs => getStatusDRS(drs) === 'pendente').length
+  };
+
+  const currentCounts = statusFilterType === 'municipio' ? countByMunicipio : countByDRS;
 
   const totalPagesMunicipios = Math.ceil(municipiosFiltradosBusca.length / itemsPerPage);
   const paginatedMunicipios = municipiosFiltradosBusca.slice(
@@ -599,12 +632,25 @@ export function BuscaAtiva() {
                 <Users className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-800">Status dos Municípios</h3>
+                <h3 className="font-semibold text-slate-800">
+                  {statusFilterType === 'municipio' ? 'Status dos Municípios' : 'Status dos DRS'}
+                </h3>
                 <p className="text-xs text-slate-500">
-                  {municipiosFiltradosBusca.length} municípios • 
-                  <span className="text-emerald-600 ml-1">{municipiosFiltradosBusca.filter(m => m.status === 'respondido').length} respondidos</span> • 
-                  <span className="text-amber-600 ml-1">{municipiosFiltradosBusca.filter(m => m.status === 'em_andamento').length} em andamento</span> • 
-                  <span className="text-red-600 ml-1">{municipiosFiltradosBusca.filter(m => m.status === 'pendente').length} pendentes</span>
+                  {statusFilterType === 'municipio' ? (
+                    <>
+                      {municipiosFiltradosBusca.length} municípios • 
+                      <span className="text-emerald-600 ml-1">{countByMunicipio.respondido} respondidos</span> • 
+                      <span className="text-amber-600 ml-1">{countByMunicipio.em_andamento} em andamento</span> • 
+                      <span className="text-red-600 ml-1">{countByMunicipio.pendente} pendentes</span>
+                    </>
+                  ) : (
+                    <>
+                      {countByDRS.total} DRS • 
+                      <span className="text-emerald-600 ml-1">{countByDRS.respondido} respondidos</span> • 
+                      <span className="text-amber-600 ml-1">{countByDRS.em_andamento} em andamento</span> • 
+                      <span className="text-red-600 ml-1">{countByDRS.pendente} pendentes</span>
+                    </>
+                  )}
                 </p>
               </div>
             </div>
@@ -624,21 +670,101 @@ export function BuscaAtiva() {
           </div>
         </div>
 
-        {/* Legend */}
+        {/* Filter by Status */}
         <div className="p-4 border-b border-slate-100 bg-slate-50">
-          <p className="text-xs font-medium text-slate-500 mb-3">Legenda dos Semáforos</p>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
+            {/* Tipo de filtro */}
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-              <span className="text-xs text-slate-600">Respondido</span>
+              <p className="text-xs font-medium text-slate-500">Filtrar por:</p>
+              <div className="flex bg-white border border-slate-200 rounded-lg p-0.5">
+                <button
+                  onClick={() => { setStatusFilterType('municipio'); setSelectedStatus('todos'); setCurrentPage(1); }}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                    statusFilterType === 'municipio' 
+                      ? 'bg-teal-600 text-white' 
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  Município
+                </button>
+                <button
+                  onClick={() => { setStatusFilterType('drs'); setSelectedStatus('todos'); setCurrentPage(1); }}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                    statusFilterType === 'drs' 
+                      ? 'bg-teal-600 text-white' 
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  DRS
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-              <span className="text-xs text-slate-600">Em andamento</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-400"></div>
-              <span className="text-xs text-slate-600">Pendente</span>
+
+            {/* Status buttons */}
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => { setSelectedStatus('todos'); setCurrentPage(1); }}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  selectedStatus === 'todos' 
+                    ? 'bg-slate-700 text-white' 
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                Todos
+                <span className={`px-1.5 py-0.5 rounded-full text-xs ${
+                  selectedStatus === 'todos' ? 'bg-slate-600' : 'bg-slate-100'
+                }`}>
+                  {currentCounts.total}
+                </span>
+              </button>
+              <button
+                onClick={() => { setSelectedStatus('respondido'); setCurrentPage(1); }}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  selectedStatus === 'respondido' 
+                    ? 'bg-emerald-600 text-white' 
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-emerald-50'
+                }`}
+              >
+                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                Respondidos
+                <span className={`px-1.5 py-0.5 rounded-full text-xs ${
+                  selectedStatus === 'respondido' ? 'bg-emerald-500' : 'bg-emerald-100 text-emerald-700'
+                }`}>
+                  {currentCounts.respondido}
+                </span>
+              </button>
+              <button
+                onClick={() => { setSelectedStatus('em_andamento'); setCurrentPage(1); }}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  selectedStatus === 'em_andamento' 
+                    ? 'bg-amber-500 text-white' 
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-amber-50'
+                }`}
+              >
+                <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                Em andamento
+                <span className={`px-1.5 py-0.5 rounded-full text-xs ${
+                  selectedStatus === 'em_andamento' ? 'bg-amber-400' : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {currentCounts.em_andamento}
+                </span>
+              </button>
+              <button
+                onClick={() => { setSelectedStatus('pendente'); setCurrentPage(1); }}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  selectedStatus === 'pendente' 
+                    ? 'bg-red-500 text-white' 
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-red-50'
+                }`}
+              >
+                <div className="w-2 h-2 rounded-full bg-red-400"></div>
+                Pendentes
+                <span className={`px-1.5 py-0.5 rounded-full text-xs ${
+                  selectedStatus === 'pendente' ? 'bg-red-400' : 'bg-red-100 text-red-700'
+                }`}>
+                  {currentCounts.pendente}
+                </span>
+              </button>
             </div>
           </div>
         </div>

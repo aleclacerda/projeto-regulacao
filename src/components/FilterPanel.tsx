@@ -109,7 +109,7 @@ export function FilterPanel({
             onChange={(e) => handleDRSChange(e.target.value)}
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
           >
-            <option value="">Todas as DRS</option>
+            <option value="">Todos os DRS</option>
             {drsList.map(drs => (
               <option key={drs} value={drs}>{drs}</option>
             ))}
