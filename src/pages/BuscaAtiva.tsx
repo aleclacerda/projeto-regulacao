@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Building2, Network, CheckCircle2, Clock, MapPin, Users, Search, BarChart3 } from 'lucide-react';
+import { Building2, Network, CheckCircle2, Clock, MapPin, Users, Search, BarChart3, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { FilterPanel } from '../components/FilterPanel';
 import { SPMapLeaflet } from '../components/SPMapLeaflet';
@@ -33,6 +33,8 @@ export function BuscaAtiva() {
   const [selectedStatus, setSelectedStatus] = useState<'todos' | 'respondido' | 'em_andamento' | 'pendente'>('todos');
   const [statusFilterType, setStatusFilterType] = useState<'municipio' | 'drs'>('municipio');
   const [duplicados, setDuplicados] = useState<MunicipioDuplicado[]>([]);
+  const [serieHistoricaFiltro, setSerieHistoricaFiltro] = useState<'todos' | 'municipio' | 'drs'>('todos');
+  const [serieHistoricaTipo, setSerieHistoricaTipo] = useState<'acumulado' | 'diario'>('acumulado');
 
   useEffect(() => {
     async function loadData() {
@@ -135,6 +137,85 @@ export function BuscaAtiva() {
       isRegiaoEmAndamento
     };
   }).sort((a, b) => b.percent - a.percent);
+
+  // Série histórica por dia (respostas completas)
+  const serieHistorica = (() => {
+    // Municípios válidos baseados nos filtros
+    const municipiosValidosSet = new Set(
+      municipiosFiltrados.map(m => normalizeNome(m.nome))
+    );
+
+    // Função auxiliar para calcular série de uma instituição
+    const calcularSerie = (instituicao: 'Municipio' | 'DRS' | 'todos') => {
+      const respostasFiltradas = respostas.filter(r => {
+        if (!r.complete) return false;
+        if (instituicao === 'Municipio') return r.instituicao === 'Municipio';
+        if (instituicao === 'DRS') return r.instituicao === 'DRS';
+        return r.instituicao === 'Municipio' || r.instituicao === 'DRS';
+      });
+
+      const respostasOrdenadas = [...respostasFiltradas].sort((a, b) => {
+        const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return dateA - dateB;
+      });
+
+      const municipiosContados = new Set<string>();
+      const porDia: Record<string, number> = {};
+
+      for (const resposta of respostasOrdenadas) {
+        if (!resposta.timestamp) continue;
+        
+        const dataMatch = resposta.timestamp.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (!dataMatch) continue;
+        const mes = dataMatch[1].padStart(2, '0');
+        const diaNum = dataMatch[2].padStart(2, '0');
+        const ano = dataMatch[3];
+        const dia = `${ano}-${mes}-${diaNum}`;
+
+        let novosNesteDia = 0;
+        for (const municipio of resposta.municipiosRespondidos) {
+          const normalizado = normalizeNome(municipio);
+          // Só conta se o município está nos filtros selecionados
+          if (!municipiosContados.has(normalizado) && municipiosValidosSet.has(normalizado)) {
+            municipiosContados.add(normalizado);
+            novosNesteDia++;
+          }
+        }
+
+        if (novosNesteDia > 0) {
+          porDia[dia] = (porDia[dia] || 0) + novosNesteDia;
+        }
+      }
+
+      return porDia;
+    };
+
+    // Calcular séries separadas
+    const serieMunicipios = calcularSerie('Municipio');
+    const serieDRS = calcularSerie('DRS');
+    
+    // Obter todos os dias únicos
+    const todosDias = [...new Set([...Object.keys(serieMunicipios), ...Object.keys(serieDRS)])].sort();
+    
+    // Construir série com acumulados
+    let acumMunicipios = 0;
+    let acumDRS = 0;
+    
+    return todosDias.map(dia => {
+      acumMunicipios += serieMunicipios[dia] || 0;
+      acumDRS += serieDRS[dia] || 0;
+      return {
+        dia,
+        diaFormatado: new Date(dia + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+        municipios: acumMunicipios,
+        drs: acumDRS,
+        total: acumMunicipios + acumDRS,
+        novosMunicipios: serieMunicipios[dia] || 0,
+        novosDRS: serieDRS[dia] || 0
+      };
+    });
+  })();
 
   // Função para determinar status do município
   const getStatusMunicipio = (municipio: Municipio): 'respondido' | 'em_andamento' | 'pendente' => {
@@ -384,6 +465,271 @@ export function BuscaAtiva() {
         onRegiaoSaudeChange={setSelectedRegiaoSaude}
         onMunicipioChange={setSelectedMunicipio}
       />
+
+      {/* Série Histórica */}
+      {serieHistorica.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-6"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-2.5 rounded-xl">
+                <TrendingUp className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800">Série Histórica de Respostas</h3>
+                <p className="text-xs text-slate-500">Evolução diária de municípios e DRS respondidos</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Filtro Acumulado/Diário */}
+              <div className="flex gap-1 bg-indigo-50 p-1 rounded-lg">
+                <button
+                  onClick={() => setSerieHistoricaTipo('acumulado')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    serieHistoricaTipo === 'acumulado' 
+                      ? 'bg-indigo-500 text-white shadow-sm' 
+                      : 'text-indigo-600 hover:text-indigo-700'
+                  }`}
+                >
+                  Acumulado
+                </button>
+                <button
+                  onClick={() => setSerieHistoricaTipo('diario')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    serieHistoricaTipo === 'diario' 
+                      ? 'bg-indigo-500 text-white shadow-sm' 
+                      : 'text-indigo-600 hover:text-indigo-700'
+                  }`}
+                >
+                  Diário
+                </button>
+              </div>
+              {/* Filtro Instituição */}
+              <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+                <button
+                  onClick={() => setSerieHistoricaFiltro('todos')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    serieHistoricaFiltro === 'todos' 
+                      ? 'bg-white text-slate-800 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Todos
+                </button>
+                <button
+                  onClick={() => setSerieHistoricaFiltro('municipio')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    serieHistoricaFiltro === 'municipio' 
+                      ? 'bg-white text-slate-800 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Municípios
+                </button>
+                <button
+                  onClick={() => setSerieHistoricaFiltro('drs')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    serieHistoricaFiltro === 'drs' 
+                      ? 'bg-white text-slate-800 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  DRS
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Legenda */}
+          {serieHistoricaFiltro === 'todos' && (
+            <div className="flex items-center gap-4 mb-3 text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span className="text-slate-600">Municípios</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-violet-500"></div>
+                <span className="text-slate-600">DRS</span>
+              </div>
+            </div>
+          )}
+
+          {/* Gráfico de linhas */}
+          <div className="relative h-52 mt-2 px-4">
+            {/* Grid horizontal */}
+            <div className="absolute inset-x-4 inset-y-0 flex flex-col justify-between pointer-events-none">
+              {[0, 1, 2, 3, 4].map(i => (
+                <div key={i} className="border-t border-slate-100 w-full"></div>
+              ))}
+            </div>
+
+            {/* SVG para as linhas */}
+            <svg 
+              className="absolute inset-x-4 inset-y-0 overflow-visible"
+              style={{ width: 'calc(100% - 32px)', height: '100%' }}
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+            >
+              {(() => {
+                const getValorMunicipio = (item: typeof serieHistorica[0]) => 
+                  serieHistoricaTipo === 'acumulado' ? item.municipios : item.novosMunicipios;
+                const getValorDRS = (item: typeof serieHistorica[0]) => 
+                  serieHistoricaTipo === 'acumulado' ? item.drs : item.novosDRS;
+
+                const maxValue = Math.max(
+                  ...serieHistorica.map(s => 
+                    serieHistoricaFiltro === 'drs' ? getValorDRS(s) : 
+                    serieHistoricaFiltro === 'municipio' ? getValorMunicipio(s) : 
+                    Math.max(getValorMunicipio(s), getValorDRS(s))
+                  ),
+                  1
+                );
+
+                const getX = (idx: number) => (idx / (serieHistorica.length - 1 || 1)) * 100;
+                const getY = (value: number) => 100 - (value / maxValue) * 85 - 5;
+
+                const pathMunicipios = serieHistorica.map((item, idx) => 
+                  `${idx === 0 ? 'M' : 'L'} ${getX(idx)} ${getY(getValorMunicipio(item))}`
+                ).join(' ');
+
+                const pathDRS = serieHistorica.map((item, idx) => 
+                  `${idx === 0 ? 'M' : 'L'} ${getX(idx)} ${getY(getValorDRS(item))}`
+                ).join(' ');
+
+                return (
+                  <>
+                    {(serieHistoricaFiltro === 'todos' || serieHistoricaFiltro === 'municipio') && (
+                      <path
+                        d={pathMunicipios}
+                        fill="none"
+                        stroke="#10b981"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    )}
+                    {(serieHistoricaFiltro === 'todos' || serieHistoricaFiltro === 'drs') && (
+                      <path
+                        d={pathDRS}
+                        fill="none"
+                        stroke="#8b5cf6"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    )}
+                  </>
+                );
+              })()}
+            </svg>
+
+            {/* Rótulos nos pontos (apenas números, sem bolinhas) */}
+            <div className="absolute inset-x-4 inset-y-0 flex">
+              {serieHistorica.map((item, idx) => {
+                const getValorMunicipio = (s: typeof serieHistorica[0]) => 
+                  serieHistoricaTipo === 'acumulado' ? s.municipios : s.novosMunicipios;
+                const getValorDRS = (s: typeof serieHistorica[0]) => 
+                  serieHistoricaTipo === 'acumulado' ? s.drs : s.novosDRS;
+
+                const maxValue = Math.max(
+                  ...serieHistorica.map(s => 
+                    serieHistoricaFiltro === 'drs' ? getValorDRS(s) : 
+                    serieHistoricaFiltro === 'municipio' ? getValorMunicipio(s) : 
+                    Math.max(getValorMunicipio(s), getValorDRS(s))
+                  ),
+                  1
+                );
+                
+                const valorMunicipio = getValorMunicipio(item);
+                const valorDRS = getValorDRS(item);
+                const posYMunicipio = 100 - (valorMunicipio / maxValue) * 85 - 5;
+                const posYDRS = 100 - (valorDRS / maxValue) * 85 - 5;
+                
+                return (
+                  <div key={idx} className="flex-1 relative">
+                    {(serieHistoricaFiltro === 'todos' || serieHistoricaFiltro === 'municipio') && (
+                      <span 
+                        className="absolute left-1/2 -translate-x-1/2 text-[10px] font-bold text-emerald-600 bg-white/80 px-1 rounded"
+                        style={{ top: `calc(${posYMunicipio}% - 16px)` }}
+                      >
+                        {valorMunicipio}
+                      </span>
+                    )}
+                    {(serieHistoricaFiltro === 'todos' || serieHistoricaFiltro === 'drs') && valorDRS > 0 && (
+                      <span 
+                        className="absolute left-1/2 -translate-x-1/2 text-[10px] font-bold text-violet-600 bg-white/80 px-1 rounded"
+                        style={{ top: `calc(${posYDRS}% - 16px)` }}
+                      >
+                        {valorDRS}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Labels do eixo X */}
+          <div className="flex mt-2 px-5">
+            {serieHistorica.map((item, idx) => (
+              <div key={idx} className="flex-1 text-center">
+                <span className="text-[10px] text-slate-500 font-medium">{item.diaFormatado}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Resumo */}
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+            <div className="flex gap-6">
+              <div className="text-center">
+                <p className="text-xl font-bold text-slate-700">{serieHistorica.length}</p>
+                <p className="text-[10px] text-slate-500">Dias</p>
+              </div>
+              {(serieHistoricaFiltro === 'todos' || serieHistoricaFiltro === 'municipio') && (
+                <div className="text-center">
+                  <p className="text-xl font-bold text-emerald-600">
+                    {serieHistorica.length > 0 ? serieHistorica[serieHistorica.length - 1].municipios : 0}
+                  </p>
+                  <p className="text-[10px] text-slate-500">Municípios</p>
+                </div>
+              )}
+              {(serieHistoricaFiltro === 'todos' || serieHistoricaFiltro === 'drs') && (
+                <div className="text-center">
+                  <p className="text-xl font-bold text-violet-600">
+                    {serieHistorica.length > 0 ? serieHistorica[serieHistorica.length - 1].drs : 0}
+                  </p>
+                  <p className="text-[10px] text-slate-500">DRS</p>
+                </div>
+              )}
+              <div className="text-center">
+                <p className="text-xl font-bold text-slate-500">
+                  {serieHistorica.length > 0 
+                    ? (serieHistorica[serieHistorica.length - 1].total / serieHistorica.length).toFixed(1)
+                    : 0
+                  }
+                </p>
+                <p className="text-[10px] text-slate-500">Média/dia</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-slate-400">Período</p>
+              <p className="text-sm font-medium text-slate-600">
+                {serieHistorica.length > 0 && (
+                  <>
+                    {serieHistorica[0].diaFormatado} - {serieHistorica[serieHistorica.length - 1].diaFormatado}
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Panels DRS, RRAS and Região de Saúde */}
       <motion.div 
