@@ -48,3 +48,13 @@ export interface FilterState {
   drs: string | null;
   municipio: string | null;
 }
+
+export interface MunicipioDuplicado {
+  municipio: string;
+  respostas: {
+    recordId: string;
+    timestamp: string;
+    nomeRespondente: string;
+    instituicao: string;
+  }[];
+}

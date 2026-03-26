@@ -12,9 +12,10 @@ import {
   getMunicipiosEmAndamento,
   getDRSRespondidas,
   getDRSEmAndamento,
+  getMunicipiosDuplicados,
   normalizeNome
 } from '../utils/dataLoader';
-import type { Municipio, Resposta } from '../types';
+import type { Municipio, Resposta, MunicipioDuplicado } from '../types';
 
 export function BuscaAtiva() {
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
@@ -31,6 +32,7 @@ export function BuscaAtiva() {
   const [selectedMunicipio, setSelectedMunicipio] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<'todos' | 'respondido' | 'em_andamento' | 'pendente'>('todos');
   const [statusFilterType, setStatusFilterType] = useState<'municipio' | 'drs'>('municipio');
+  const [duplicados, setDuplicados] = useState<MunicipioDuplicado[]>([]);
 
   useEffect(() => {
     async function loadData() {
@@ -41,6 +43,7 @@ export function BuscaAtiva() {
         ]);
         setMunicipios(munis);
         setRespostas(resps);
+        setDuplicados(getMunicipiosDuplicados(resps));
       } catch (err) {
         setError('Erro ao carregar dados. Verifique se os arquivos CSV estão disponíveis.');
         console.error(err);
@@ -618,6 +621,8 @@ export function BuscaAtiva() {
         />
       </motion.div>
 
+      {/* Duplicados - Análise Gerencial (sintético, ao final) */}
+
       {/* Enhanced Municipalities Table with Traffic Lights */}
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
@@ -880,6 +885,34 @@ export function BuscaAtiva() {
           </div>
         )}
       </motion.div>
+
+      {/* Análise Gerencial: Duplicados (sintético, ao final) */}
+      {duplicados.length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-amber-50 border border-amber-200 rounded-xl p-4"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <BarChart3 className="w-4 h-4 text-amber-600" />
+            <h4 className="font-semibold text-amber-800 text-sm">Análise Gerencial: Respostas Duplicadas</h4>
+          </div>
+          <p className="text-xs text-amber-700 mb-2">
+            {duplicados.length} município(s) com múltiplas respostas. A contagem considera apenas a resposta mais recente.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {duplicados.map((dup, idx) => (
+              <span key={idx} className="bg-amber-200 text-amber-800 px-2 py-1 rounded text-xs font-medium">
+                <span className="capitalize">{dup.municipio}</span>
+                <span className="text-amber-600 ml-1">
+                  (IDs: {dup.respostas.map(r => r.recordId).join(', ')})
+                </span>
+              </span>
+            ))}
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }

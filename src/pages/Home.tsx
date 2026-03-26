@@ -13,9 +13,11 @@ import {
   Calendar,
   BarChart3,
   HeartPulse,
-  Circle
+  Circle,
+  X,
+  AlertCircle
 } from 'lucide-react';
-import { loadMunicipios, loadRespostas, calcularKPIs, getDataAtualizacao } from '../utils/dataLoader';
+import { loadMunicipios, loadRespostas, calcularKPIs, getDataAtualizacao, getMunicipiosDuplicados } from '../utils/dataLoader';
 
 export function Home() {
   const [stats, setStats] = useState({
@@ -27,11 +29,20 @@ export function Home() {
     percentualDRS: 0,
     respostasCompletas: 0,
     respostasEmAndamento: 0,
+    emAndamentoComMunicipio: 0,
+    emAndamentoSemMunicipio: 0,
+    emAndamentoSemInstituicao: 0,
     totalQuestionarios: 0,
     percentualQuestionarios: 0
   });
   const [loading, setLoading] = useState(true);
   const [dataAtualizacao, setDataAtualizacao] = useState<Date | null>(null);
+  const [showAbertosModal, setShowAbertosModal] = useState(false);
+  const [abertosDetalhes, setAbertosDetalhes] = useState<{
+    comMunicipio: { id: string; nome: string; municipios: string[]; instituicao: string }[];
+    semMunicipio: { id: string; nome: string; instituicao: string }[];
+    semInstituicao: { id: string; nome: string }[];
+  }>({ comMunicipio: [], semMunicipio: [], semInstituicao: [] });
 
   useEffect(() => {
     async function loadStats() {
@@ -43,16 +54,73 @@ export function Home() {
         ]);
         setDataAtualizacao(dataAtual);
         const kpis = calcularKPIs(municipios, respostas);
-        const completas = respostas.filter(r => r.complete).length;
-        const emAndamento = respostas.filter(r => !r.complete && r.recordId).length;
-        const totalQ = respostas.filter(r => r.recordId).length;
+        
+        // Contar duplicados para subtrair da contagem de completos
+        const duplicados = getMunicipiosDuplicados(respostas);
+        const totalDuplicados = duplicados.reduce((acc, d) => acc + (d.respostas.length - 1), 0);
+        
+        // Contar apenas respostas de Município ou DRS (ignorar outras instituições)
+        const completasMunicipios = respostas.filter(r => r.complete && r.instituicao === 'Municipio').length;
+        const completasDRS = respostas.filter(r => r.complete && r.instituicao === 'DRS').length;
+        const completasTotal = completasMunicipios + completasDRS;
+        const completasSemDuplicados = completasTotal - totalDuplicados;
+        
+        // Log para identificar respostas com instituição diferente de Municipio/DRS
+        const respostasOutras = respostas.filter(r => r.complete && r.instituicao !== 'Municipio' && r.instituicao !== 'DRS');
+        if (respostasOutras.length > 0) {
+          console.warn('⚠️ Respostas completas com instituição diferente de Municipio/DRS:');
+          respostasOutras.forEach(r => {
+            console.warn(`  ID: ${r.recordId} | Instituição: "${r.instituicao}" | Respondente: ${r.nomeRespondente}`);
+          });
+        }
+        
+        // Em andamento: separar os que têm município/DRS preenchido dos que não têm
+        const abertosComMunicipio = respostas.filter(r => 
+          !r.complete && r.recordId && 
+          (r.instituicao === 'Municipio' || r.instituicao === 'DRS') &&
+          r.municipiosRespondidos.length > 0
+        );
+        const abertosSemMunicipio = respostas.filter(r => 
+          !r.complete && r.recordId && 
+          (r.instituicao === 'Municipio' || r.instituicao === 'DRS') &&
+          r.municipiosRespondidos.length === 0
+        );
+        const abertosSemInstituicao = respostas.filter(r => 
+          !r.complete && r.recordId && 
+          r.instituicao !== 'Municipio' && r.instituicao !== 'DRS'
+        );
+        const emAndamento = abertosComMunicipio.length + abertosSemMunicipio.length + abertosSemInstituicao.length;
+        
+        // Salvar detalhes para o modal
+        setAbertosDetalhes({
+          comMunicipio: abertosComMunicipio.map(r => ({
+            id: r.recordId,
+            nome: r.nomeRespondente,
+            municipios: r.municipiosRespondidos,
+            instituicao: r.instituicao
+          })),
+          semMunicipio: abertosSemMunicipio.map(r => ({
+            id: r.recordId,
+            nome: r.nomeRespondente,
+            instituicao: r.instituicao
+          })),
+          semInstituicao: abertosSemInstituicao.map(r => ({
+            id: r.recordId,
+            nome: r.nomeRespondente
+          }))
+        });
+        
+        const totalQ = completasSemDuplicados + emAndamento;
         
         setStats({
           ...kpis,
-          respostasCompletas: completas,
+          respostasCompletas: completasSemDuplicados,
           respostasEmAndamento: emAndamento,
+          emAndamentoComMunicipio: abertosComMunicipio.length,
+          emAndamentoSemMunicipio: abertosSemMunicipio.length,
+          emAndamentoSemInstituicao: abertosSemInstituicao.length,
           totalQuestionarios: totalQ,
-          percentualQuestionarios: totalQ > 0 ? (completas / totalQ) * 100 : 0
+          percentualQuestionarios: totalQ > 0 ? (completasSemDuplicados / totalQ) * 100 : 0
         });
       } catch (err) {
         console.error(err);
@@ -253,7 +321,7 @@ export function Home() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8"
       >
         <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
@@ -264,8 +332,19 @@ export function Home() {
           </div>
           <p className="text-3xl font-bold text-slate-800">{loading ? '...' : stats.totalMunicipios}</p>
           <p className="text-sm text-slate-500 mt-1">Municípios SP</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="bg-teal-50 rounded-lg p-2 text-center">
+              <p className="text-lg font-bold text-teal-600">{loading ? '...' : stats.totalDRS}</p>
+              <p className="text-xs text-teal-700">DRS</p>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-2 text-center">
+              <p className="text-lg font-bold text-slate-600">19</p>
+              <p className="text-xs text-slate-600">RRAS</p>
+            </div>
+          </div>
         </motion.div>
 
+        {/* Municípios Respondidos */}
         <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
             <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-3 rounded-xl">
@@ -277,28 +356,79 @@ export function Home() {
             </div>
           </div>
           <p className="text-3xl font-bold text-emerald-600">{loading ? '...' : stats.municipiosRespondidos}</p>
-          <p className="text-sm text-slate-500 mt-1">Respondidos</p>
+          <p className="text-sm text-slate-500 mt-1">Municípios Respondidos</p>
+          <div className="mt-3 w-full bg-emerald-100 rounded-full h-2">
+            <div 
+              className="bg-emerald-500 h-2 rounded-full transition-all duration-1000"
+              style={{ width: `${loading ? 0 : stats.percentualRespondido}%` }}
+            />
+          </div>
+          <p className="text-xs text-slate-400 mt-1 text-right">de {loading ? '...' : stats.totalMunicipios}</p>
         </motion.div>
 
+        {/* DRS Respondidos */}
+        <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-3">
+            <div className="bg-gradient-to-br from-violet-500 to-purple-600 p-3 rounded-xl">
+              <Users className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex items-center gap-1 text-violet-600">
+              <TrendingUp className="w-4 h-4" />
+              <span className="text-xs font-medium">{loading ? '...' : `${stats.percentualDRS.toFixed(1)}%`}</span>
+            </div>
+          </div>
+          <p className="text-3xl font-bold text-violet-600">{loading ? '...' : stats.drsCompletas}</p>
+          <p className="text-sm text-slate-500 mt-1">DRS Respondidos</p>
+          <div className="mt-3 w-full bg-violet-100 rounded-full h-2">
+            <div 
+              className="bg-violet-500 h-2 rounded-full transition-all duration-1000"
+              style={{ width: `${loading ? 0 : stats.percentualDRS}%` }}
+            />
+          </div>
+          <p className="text-xs text-slate-400 mt-1 text-right">de {loading ? '...' : stats.totalDRS}</p>
+        </motion.div>
+
+        {/* Questionários - Completos e Abertos */}
         <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
             <div className="bg-gradient-to-br from-cyan-500 to-teal-600 p-3 rounded-xl">
-              <Users className="w-6 h-6 text-white" />
+              <FileText className="w-6 h-6 text-white" />
             </div>
-            <div className="flex items-center gap-1 text-cyan-600">
-              <TrendingUp className="w-4 h-4" />
-              <span className="text-xs font-medium">{loading ? '...' : `${stats.percentualQuestionarios.toFixed(1)}%`}</span>
-            </div>
+            <span className="text-xs font-medium text-cyan-600 bg-cyan-50 px-2 py-1 rounded-full">Únicos</span>
           </div>
           <p className="text-3xl font-bold text-cyan-600">{loading ? '...' : stats.totalQuestionarios}</p>
-          <p className="text-sm text-slate-500 mt-1">Questionários Respondidos</p>
-          <div className="mt-2 flex items-center gap-2 text-xs">
-            <span className="text-emerald-600 font-medium">{loading ? '...' : stats.respostasCompletas} completos</span>
-            <span className="text-slate-300">|</span>
-            <span className="text-amber-600 font-medium">{loading ? '...' : stats.respostasEmAndamento} em andamento</span>
+          <p className="text-sm text-slate-500 mt-1">Questionários</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="bg-emerald-50 rounded-lg p-2 text-center">
+              <p className="text-lg font-bold text-emerald-600">{loading ? '...' : stats.respostasCompletas}</p>
+              <p className="text-xs text-emerald-700">Completos</p>
+            </div>
+            <button 
+              onClick={() => setShowAbertosModal(true)}
+              className="bg-amber-50 rounded-lg p-2 text-center hover:bg-amber-100 transition-colors cursor-pointer w-full"
+            >
+              <p className="text-lg font-bold text-amber-600">{loading ? '...' : stats.respostasEmAndamento}</p>
+              <p className="text-xs text-amber-700">Abertos</p>
+            </button>
           </div>
+          {stats.respostasEmAndamento > 0 && (
+            <button 
+              onClick={() => setShowAbertosModal(true)}
+              className="mt-2 flex items-center justify-center gap-3 text-[10px] w-full hover:bg-slate-50 rounded-lg py-1 transition-colors"
+            >
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span className="text-slate-500">{stats.emAndamentoComMunicipio} identificados</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span className="text-slate-500">{stats.emAndamentoSemMunicipio + stats.emAndamentoSemInstituicao} não identificados</span>
+              </span>
+            </button>
+          )}
         </motion.div>
 
+        {/* Municípios Pendentes */}
         <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
             <div className="bg-gradient-to-br from-slate-400 to-slate-500 p-3 rounded-xl">
@@ -307,7 +437,14 @@ export function Home() {
             <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Pendente</span>
           </div>
           <p className="text-3xl font-bold text-slate-600">{loading ? '...' : stats.totalMunicipios - stats.municipiosRespondidos}</p>
-          <p className="text-sm text-slate-500 mt-1">Aguardando</p>
+          <p className="text-sm text-slate-500 mt-1">Municípios Aguardando</p>
+          <div className="mt-3 w-full bg-slate-100 rounded-full h-2">
+            <div 
+              className="bg-slate-400 h-2 rounded-full transition-all duration-1000"
+              style={{ width: `${loading ? 0 : ((stats.totalMunicipios - stats.municipiosRespondidos) / stats.totalMunicipios) * 100}%` }}
+            />
+          </div>
+          <p className="text-xs text-slate-400 mt-1 text-right">{loading ? '...' : (100 - stats.percentualRespondido).toFixed(1)}% restante</p>
         </motion.div>
       </motion.div>
 
@@ -484,6 +621,114 @@ export function Home() {
           </div>
         </div>
       </motion.div>
+
+      {/* Modal de Questionários em Aberto */}
+      {showAbertosModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="bg-amber-100 p-2 rounded-xl">
+                  <AlertCircle className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800">Questionários em Aberto</h3>
+                  <p className="text-xs text-slate-500">{stats.respostasEmAndamento} questionários não finalizados</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowAbertosModal(false)}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            
+            <div className="p-4 overflow-y-auto max-h-[60vh] space-y-4">
+              {/* Identificados (com município) */}
+              {abertosDetalhes.comMunicipio.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <h4 className="font-semibold text-slate-700 text-sm">
+                      Identificados ({abertosDetalhes.comMunicipio.length})
+                    </h4>
+                  </div>
+                  <div className="bg-emerald-50 rounded-xl p-3 space-y-2">
+                    {abertosDetalhes.comMunicipio.map((item, idx) => (
+                      <div key={idx} className="bg-white rounded-lg p-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-slate-700">ID {item.id}</span>
+                          <span className="text-xs text-slate-400">{item.instituicao}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {item.municipios.map((m, i) => (
+                            <span key={i} className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs">
+                              {m}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sem município preenchido */}
+              {abertosDetalhes.semMunicipio.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                    <h4 className="font-semibold text-slate-700 text-sm">
+                      Sem município preenchido ({abertosDetalhes.semMunicipio.length})
+                    </h4>
+                  </div>
+                  <div className="bg-amber-50 rounded-xl p-3 space-y-2">
+                    {abertosDetalhes.semMunicipio.map((item, idx) => (
+                      <div key={idx} className="bg-white rounded-lg p-2 text-sm flex items-center justify-between">
+                        <span className="font-medium text-slate-700">ID {item.id}</span>
+                        <span className="text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded">{item.instituicao}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sem instituição */}
+              {abertosDetalhes.semInstituicao.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                    <h4 className="font-semibold text-slate-700 text-sm">
+                      Sem instituição definida ({abertosDetalhes.semInstituicao.length})
+                    </h4>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-3 space-y-2">
+                    {abertosDetalhes.semInstituicao.map((item, idx) => (
+                      <div key={idx} className="bg-white rounded-lg p-2 text-sm">
+                        <span className="font-medium text-slate-700">ID {item.id}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-200 bg-slate-50">
+              <button 
+                onClick={() => setShowAbertosModal(false)}
+                className="w-full bg-slate-800 text-white py-2 rounded-xl font-medium hover:bg-slate-700 transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

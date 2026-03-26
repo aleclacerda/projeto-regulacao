@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import type { Municipio, Resposta } from '../types';
+import type { Municipio, Resposta, MunicipioDuplicado } from '../types';
 
 export function normalizeNome(nome: string): string {
   return nome
@@ -54,21 +54,39 @@ export async function loadMunicipios(): Promise<Municipio[]> {
   }));
 }
 
-// Função para identificar se uma coluna é de DRS (não é Região de Saúde)
-function isDRSColumn(colName: string): boolean {
-  // Colunas de DRS começam com "DRS" ou "Região - DRS" ou "Regiao - DRS"
+// Função para identificar se uma coluna é cabeçalho de DRS (agrupa regiões de saúde)
+// EXCEÇÕES: DRS IV (Baixada Santista) e DRS XII (Registro) não têm sub-regiões,
+// então suas colunas contêm municípios diretamente e NÃO devem ser tratadas como cabeçalhos
+function isDRSHeaderColumn(colName: string): boolean {
   const normalized = colName.trim();
-  return normalized.startsWith('DRS ') || 
-         normalized.startsWith('Região - DRS') || 
-         normalized.startsWith('Regiao - DRS') ||
-         normalized.startsWith('Região - São Paulo') ||
-         normalized.startsWith('Região - Campinas');
+  
+  // Exceções: DRS que não têm sub-regiões (contêm municípios diretamente)
+  // DRS IV - Baixada Santista
+  // DRS XII - Registro / Vale do Ribeira
+  if (/DRS\s+IV\s*-/i.test(normalized) || /Baixada\s+Santista/i.test(normalized)) {
+    return false;
+  }
+  if (/DRS\s+XII\s*-/i.test(normalized) || /Registro/i.test(normalized) || /Vale\s+do\s+Ribeira/i.test(normalized)) {
+    return false;
+  }
+  
+  // Padrões de cabeçalho de DRS:
+  // "DRS XV - São José do Rio Preto"
+  // "DRS VI - Bauru"
+  // "Regiao - DRS II - Araçatuba"
+  // "Região - DRS I - Grande São Paulo"
+  // "Região - Campinas" (caso especial sem "DRS" no nome)
+  return /^DRS\s+[IVXLCDM]+\s*-/i.test(normalized) || 
+         /^Regi[aã]o\s*-\s*DRS\s+[IVXLCDM]+/i.test(normalized) ||
+         /^Regi[aã]o\s*-\s*Campinas/i.test(normalized);
 }
 
-// Função para identificar se uma coluna é de Região de Saúde
+// Função para identificar se uma coluna é de Região de Saúde (contém municípios)
+// Todas as colunas que NÃO são cabeçalhos de DRS são regiões de saúde
 function isRegiaoSaudeColumn(colName: string): boolean {
-  // Colunas de Região de Saúde NÃO são colunas de DRS
-  return !isDRSColumn(colName);
+  // Colunas de Região de Saúde NÃO são cabeçalhos de DRS
+  // Incluem: "Região de Saúde de X", "Região Alto do Tietê", "Diadema", "Votuporanga", etc.
+  return !isDRSHeaderColumn(colName);
 }
 
 export async function getDataAtualizacao(): Promise<Date | null> {
@@ -86,7 +104,20 @@ export async function getDataAtualizacao(): Promise<Date | null> {
 
 export async function loadRespostas(): Promise<Resposta[]> {
   const response = await fetch('/data/respostas.csv');
-  let text = await response.text();
+  
+  // Ler como ArrayBuffer para decodificar corretamente
+  const buffer = await response.arrayBuffer();
+  
+  // Tentar decodificar como UTF-8 primeiro, se falhar usar Latin1 (ISO-8859-1)
+  let text: string;
+  try {
+    const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+    text = utf8Decoder.decode(buffer);
+  } catch {
+    // Se UTF-8 falhar, usar Latin1 (Windows-1252)
+    const latin1Decoder = new TextDecoder('windows-1252');
+    text = latin1Decoder.decode(buffer);
+  }
   
   // Normalizar quebras de linha
   text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -105,21 +136,23 @@ export async function loadRespostas(): Promise<Resposta[]> {
         const regiaoSaudeColumns = allColumns.filter(col => isRegiaoSaudeColumn(col));
         
         for (const row of results.data as Record<string, string>[]) {
-          const municipiosRespondidos: string[] = [];
-          const regioesSaudeRespondidas: string[] = [];
+          const municipiosSet = new Set<string>();
+          const regioesSaudeSet = new Set<string>();
           
           // Extrair dados das colunas de Região de Saúde (contém municípios)
           for (const col of regiaoSaudeColumns) {
             const value = row[col];
             if (value && value.trim() && !['Unchecked', 'Checked', ''].includes(value.trim())) {
               // O valor é o município, a coluna é a Região de Saúde
-              municipiosRespondidos.push(value.trim());
+              // Usar Set para evitar duplicatas (mesmo município em múltiplas colunas)
+              municipiosSet.add(value.trim());
               // Registrar a Região de Saúde como respondida
-              if (!regioesSaudeRespondidas.includes(col)) {
-                regioesSaudeRespondidas.push(col);
-              }
+              regioesSaudeSet.add(col);
             }
           }
+          
+          const municipiosRespondidos = Array.from(municipiosSet);
+          const regioesSaudeRespondidas = Array.from(regioesSaudeSet);
           
           // Verifica se está completo: coluna Complete? = 'Complete' E timestamp não contém '[not completed]'
           // Também ignora respostas de teste (nome = 'teste')
@@ -152,7 +185,7 @@ export async function loadRespostas(): Promise<Resposta[]> {
 }
 
 // Retorna municípios com resposta parcial (iniciaram mas não completaram)
-// Considera respostas de MUNICÍPIOS e também de DRS incompletas
+// Considera apenas respostas com instituição preenchida (Municipio ou DRS)
 export function getMunicipiosEmAndamento(respostas: Resposta[], municipiosBase?: Municipio[]): Set<string> {
   const emAndamento = new Set<string>();
   const completos = getMunicipiosRespondidos(respostas, municipiosBase);
@@ -162,8 +195,9 @@ export function getMunicipiosEmAndamento(respostas: Resposta[], municipiosBase?:
     : null;
   
   for (const resposta of respostas) {
-    // Resposta iniciada mas não completa (qualquer instituição)
-    if (!resposta.complete && resposta.recordId) {
+    // Resposta iniciada mas não completa, COM instituição preenchida (Municipio ou DRS)
+    if (!resposta.complete && resposta.recordId && 
+        (resposta.instituicao === 'Municipio' || resposta.instituicao === 'DRS')) {
       for (const municipio of resposta.municipiosRespondidos) {
         const normalizado = normalizeNome(municipio);
         // Só adiciona se não está completo e é válido
@@ -211,6 +245,7 @@ export function getDRSEmAndamento(respostas: Resposta[]): Set<string> {
 
 // Retorna municípios que responderam INDIVIDUALMENTE (instituição = 'Municipio')
 // NÃO inclui municípios cobertos por resposta de DRS
+// Considera apenas a ÚLTIMA resposta de cada município (ignora duplicados anteriores)
 export function getMunicipiosRespondidos(respostas: Resposta[], municipiosBase?: Municipio[]): Set<string> {
   const respondidos = new Set<string>();
   
@@ -219,21 +254,79 @@ export function getMunicipiosRespondidos(respostas: Resposta[], municipiosBase?:
     ? new Set(municipiosBase.map(m => normalizeNome(m.nome)))
     : null;
   
-  // Adicionar APENAS municípios que responderam individualmente (instituição = 'Municipio')
-  for (const resposta of respostas) {
-    // Só conta respostas completas de MUNICÍPIOS (não de DRS)
-    if (resposta.complete && resposta.instituicao === 'Municipio') {
-      for (const municipio of resposta.municipiosRespondidos) {
-        const normalizado = normalizeNome(municipio);
-        // Se temos base de validação, só adiciona se for município válido
-        if (!municipiosValidos || municipiosValidos.has(normalizado)) {
-          respondidos.add(normalizado);
-        }
+  // Primeiro, identificar a última resposta de cada município
+  // Ordenar respostas por timestamp (mais recente primeiro)
+  const respostasOrdenadas = [...respostas]
+    .filter(r => r.complete && r.instituicao === 'Municipio')
+    .sort((a, b) => {
+      // Ordenar por timestamp decrescente (mais recente primeiro)
+      const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return dateB - dateA;
+    });
+  
+  // Rastrear quais municípios já foram contados (apenas a última resposta)
+  const municipiosContados = new Set<string>();
+  
+  for (const resposta of respostasOrdenadas) {
+    for (const municipio of resposta.municipiosRespondidos) {
+      const normalizado = normalizeNome(municipio);
+      
+      // Se já contamos este município, pular (é uma resposta duplicada anterior)
+      if (municipiosContados.has(normalizado)) {
+        continue;
+      }
+      
+      // Marcar como contado
+      municipiosContados.add(normalizado);
+      
+      // Se temos base de validação, só adiciona se for município válido
+      if (!municipiosValidos || municipiosValidos.has(normalizado)) {
+        respondidos.add(normalizado);
+      } else {
+        console.warn(`Município não encontrado na base: "${municipio}" (normalizado: "${normalizado}")`);
       }
     }
   }
   
   return respondidos;
+}
+
+// Detecta municípios que responderam mais de uma vez (duplicados)
+export function getMunicipiosDuplicados(respostas: Resposta[]): MunicipioDuplicado[] {
+  const municipioRespostas = new Map<string, { recordId: string; timestamp: string; nomeRespondente: string; instituicao: string }[]>();
+  
+  // Agrupar respostas por município (apenas completas)
+  for (const resposta of respostas) {
+    if (resposta.complete) {
+      for (const municipio of resposta.municipiosRespondidos) {
+        const normalizado = normalizeNome(municipio);
+        if (!municipioRespostas.has(normalizado)) {
+          municipioRespostas.set(normalizado, []);
+        }
+        municipioRespostas.get(normalizado)!.push({
+          recordId: resposta.recordId,
+          timestamp: resposta.timestamp,
+          nomeRespondente: resposta.nomeRespondente,
+          instituicao: resposta.instituicao
+        });
+      }
+    }
+  }
+  
+  // Filtrar apenas os que têm mais de uma resposta
+  const duplicados: MunicipioDuplicado[] = [];
+  for (const [municipio, respostasArr] of municipioRespostas) {
+    if (respostasArr.length > 1) {
+      duplicados.push({
+        municipio,
+        respostas: respostasArr
+      });
+    }
+  }
+  
+  // Ordenar por quantidade de duplicados (maior primeiro)
+  return duplicados.sort((a, b) => b.respostas.length - a.respostas.length);
 }
 
 // Retorna Regiões de Saúde que foram respondidas (completas)
