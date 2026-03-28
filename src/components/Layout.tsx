@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
-  Users
+  Users,
+  BarChart3
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -20,6 +21,12 @@ const menuItems = [
     icon: Users, 
     path: '/busca-ativa',
     description: 'Acompanhamento'
+  },
+  { 
+    label: 'Análise', 
+    icon: BarChart3, 
+    path: '/analise',
+    description: 'Respostas'
   },
 ];
 

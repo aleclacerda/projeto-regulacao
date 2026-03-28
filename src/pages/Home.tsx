@@ -602,24 +602,24 @@ export function Home() {
           </div>
         </Link>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-6">
+        <Link to="/analise" className="bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-lg transition-shadow cursor-pointer block">
           <div className="flex items-start gap-4">
-            <div className="bg-slate-100 w-14 h-14 rounded-2xl flex items-center justify-center">
-              <BarChart3 className="w-7 h-7 text-slate-400" />
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 w-14 h-14 rounded-2xl flex items-center justify-center">
+              <BarChart3 className="w-7 h-7 text-white" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-bold text-slate-400 mb-2">
+              <h2 className="text-xl font-bold text-slate-800 mb-2">
                 Análise de Respostas
               </h2>
-              <p className="text-slate-400 text-sm mb-4">
-                Em breve: explore os resultados com gráficos interativos.
+              <p className="text-slate-600 text-sm mb-4">
+                Explore os resultados com gráficos interativos por bloco de perguntas.
               </p>
-              <span className="inline-flex items-center gap-2 text-slate-400 font-semibold text-sm bg-slate-100 px-3 py-1 rounded-full">
-                Em desenvolvimento
+              <span className="inline-flex items-center gap-2 text-indigo-600 font-semibold text-sm">
+                Acessar análise →
               </span>
             </div>
           </div>
-        </div>
+        </Link>
       </motion.div>
 
       {/* Modal de Questionários em Aberto */}
