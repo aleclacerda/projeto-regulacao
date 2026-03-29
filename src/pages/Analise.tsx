@@ -13,10 +13,600 @@ const CREDENCIAIS = {
 
 const CORES_BARRAS = ['#0d9488', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4', '#0891b2'];
 
-// Lista de blocos disponíveis
-const BLOCOS = [
+// Lista de blocos disponíveis por instituição
+const BLOCOS_MUNICIPIO = [
   { id: 'rras', nome: 'Papel do município na RRAS' },
-  { id: 'estrutura', nome: 'Estrutura da Regulação' }
+  { id: 'estrutura', nome: 'Estrutura da Regulação' },
+  { id: 'ordenacao', nome: 'Ordenação da Demanda' },
+  { id: 'priorizacao', nome: 'Priorização Clínica' }
+];
+
+const BLOCOS_DRS = [
+  { id: 'estrutura_drs', nome: 'Estrutura e Sistemas do DRS' },
+  { id: 'ordenacao_drs', nome: 'Ordenação da Demanda (DRS)' }
+];
+
+// Definição das perguntas do Bloco - Ordenação da Demanda (DRS)
+const PERGUNTAS_BLOCO_ORDENACAO_DRS = [
+  {
+    id: 'diretrizes_regionais',
+    coluna: 'Existem diretrizes regionais para ordenação da demanda para atenção especializada?',
+    titulo: 'Diretrizes regionais para ordenação da demanda',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, formalmente pactuadas', match: 'Sim, existem diretrizes regionais formalmente pactuadas e implementadas pelos municípios da região' },
+      { label: 'Sim, implementação parcial', match: 'Sim, existem diretrizes regionais pactuadas, porém com implementação parcial entre os municípios' },
+      { label: 'Existem orientações não formalizadas', match: 'Existem orientações ou fluxos definidos regionalmente, mas não formalizados em instrumentos oficiais' },
+      { label: 'Definidas apenas pelos municípios', match: 'As diretrizes para ordenação da demanda são definidas apenas pelos municípios, sem pactuação regional' },
+      { label: 'Não existem diretrizes', match: 'Não existem diretrizes regionais para ordenação da demanda para atenção especializada' }
+    ]
+  },
+  {
+    id: 'fluxos_drs',
+    coluna: 'O DRS participa da definição de fluxos assistenciais regionais?',
+    titulo: 'DRS participa da definição de fluxos',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, ativamente', match: 'Sim, ativamente' },
+      { label: 'Sim, pontualmente', match: 'Sim, pontualmente' },
+      { label: 'Não participa', match: 'Não participa' }
+    ]
+  },
+  {
+    id: 'espacos_governanca',
+    titulo: 'Espaços de governança para fluxos regionais',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Existem espaços formais de governança da regulação do acesso na região ? (choice=CIR)', label: 'CIR' },
+      { coluna: 'Existem espaços formais de governança da regulação do acesso na região ? (choice=Câmara Técnica de Regulação)', label: 'Câmara Técnica de Regulação' },
+      { coluna: 'Existem espaços formais de governança da regulação do acesso na região ? (choice=Grupo Regional de regulação)', label: 'Grupo Regional de regulação' },
+      { coluna: 'Existem espaços formais de governança da regulação do acesso na região ? (choice=Comitê Regional de Acesso)', label: 'Comitê Regional de Acesso' },
+      { coluna: 'Existem espaços formais de governança da regulação do acesso na região ? (choice=Não existem espaços específicos)', label: 'Não existem espaços específicos' },
+      { coluna: 'Existem espaços formais de governança da regulação do acesso na região ? (choice=Outros)', label: 'Outros' }
+    ]
+  },
+  {
+    id: 'fluxos_formalizados',
+    coluna: 'Existem fluxos regionais formalizados para acesso especializado?',
+    titulo: 'Fluxos regionais formalizados',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Maioria dos serviços', match: 'Maioria dos serviços' },
+      { label: 'Alguns serviços', match: 'Alguns serviços' },
+      { label: 'Não existem', match: 'Não existem' }
+    ]
+  },
+  {
+    id: 'articulacao_aps',
+    coluna: 'Como ocorre a articulação da Atenção Primária à Saúde (APS) com os processos de regulação da atenção especializada na região?',
+    titulo: 'Articulação APS com regulação especializada',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'APS atua como ordenadora', match: 'A APS atua como ordenadora do acesso com protocolos definidos' },
+      { label: 'APS participa parcialmente', match: 'A APS participa parcialmente do processo regulatório' },
+      { label: 'APS encaminha diretamente', match: 'A APS encaminha diretamente para serviços especializados sem mediação regional' },
+      { label: 'Não há articulação estruturada', match: 'Não há articulação estruturada entre APS e regulação' }
+    ]
+  },
+  {
+    id: 'solicitacoes_municipais',
+    coluna: 'Como as solicitações municipais de acesso à atenção especializada são organizadas na região ?',
+    titulo: 'Organização das solicitações municipais',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Inserção direta no SIRESP', match: 'Inserção direta no SIRESP' },
+      { label: 'Inserção via central municipal', match: 'Inserção via central municipal' },
+      { label: 'Inserção via central regional', match: 'Inserção via central regional' },
+      { label: 'Modelo misto', match: 'Modelo misto' },
+      { label: 'Outro', match: 'Outro' }
+    ]
+  },
+  {
+    id: 'regulacao_internacoes',
+    coluna: 'Como ocorre a regulação das internações hospitalares de urgência ?',
+    titulo: 'Regulação de internações de urgência',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'SIRESP', match: 'SIRESP' },
+      { label: 'Regulação regional', match: 'Regulação regional' },
+      { label: 'Regulação hospitalar direta', match: 'Regulação hospitalar direta' },
+      { label: 'Modelo misto', match: 'Modelo misto' }
+    ]
+  },
+  {
+    id: 'protocolo_vaga_zero',
+    coluna: 'Existe protocolo regional para utilização da vaga zero?',
+    titulo: 'Protocolo regional para vaga zero',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, formalizado', match: 'Sim, formalizado' },
+      { label: 'Sim, sem formalização', match: 'Sim, utilizado na prática, mas sem formalização' },
+      { label: 'Não existe protocolo', match: 'Não existe protocolo' }
+    ]
+  },
+  {
+    id: 'papel_drs_ambulatorial',
+    coluna: 'Quando há dificuldade de acesso à atenção ambulatorial especializada qual é o papel do DRS?',
+    titulo: 'Papel do DRS na dificuldade ambulatorial',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Atua diretamente', match: 'Atua diretamente' },
+      { label: 'Media municípios', match: 'Media municípios' },
+      { label: 'Apenas acompanha', match: 'Apenas acompanha' },
+      { label: 'Não atua', match: 'Não atua' }
+    ]
+  },
+  {
+    id: 'papel_drs_hospitalar',
+    coluna: 'Quando há dificuldade de acesso à atenção hospitalar qual é o papel do DRS?',
+    titulo: 'Papel do DRS na dificuldade hospitalar',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Atua diretamente', match: 'Atua diretamente' },
+      { label: 'Media municípios', match: 'Media municípios' },
+      { label: 'Apenas acompanha', match: 'Apenas acompanha' },
+      { label: 'Não atua', match: 'Não atua' }
+    ]
+  }
+];
+
+// Definição das perguntas do Bloco - Estrutura e Sistemas do DRS
+const PERGUNTAS_BLOCO_ESTRUTURA_DRS = [
+  {
+    id: 'sistemas_drs',
+    titulo: 'Sistemas de regulação utilizados no DRS',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Quais sistemas de regulação são utilizados no DRS? (choice=SIRESP)', label: 'SIRESP' },
+      { coluna: 'Quais sistemas de regulação são utilizados no DRS? (choice=Sistema regional próprio)', label: 'Sistema regional próprio' },
+      { coluna: 'Quais sistemas de regulação são utilizados no DRS? (choice=Sistemas municipal e estadual integrados)', label: 'Sistemas integrados' },
+      { coluna: 'Quais sistemas de regulação são utilizados no DRS? (choice=Planilhas ou registros manuais)', label: 'Planilhas/registros manuais' },
+      { coluna: 'Quais sistemas de regulação são utilizados no DRS? (choice=Outros)', label: 'Outros' }
+    ]
+  },
+  {
+    id: 'acesso_siresp',
+    coluna: 'O DRS possui acesso ao SIRESP ?',
+    titulo: 'Acesso ao SIRESP',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Acesso completo', match: 'Acesso completo' },
+      { label: 'Acesso parcial', match: 'Acesso parcial' },
+      { label: 'Não possui', match: 'Não possui' }
+    ]
+  },
+  {
+    id: 'integracao_sistemas_drs',
+    coluna: 'Qual o formato de integração ente o sistema municipal e estadual?',
+    titulo: 'Formato de integração de sistemas',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Totalmente integrados', match: 'Totalmente integrados' },
+      { label: 'Parcialmente integrados', match: 'Parcialmente integrados' },
+      { label: 'Não integrados', match: 'Não integrados' }
+    ]
+  }
+];
+
+// Definição das perguntas do Bloco - Ordenação da Demanda
+const PERGUNTAS_BLOCO_ORDENACAO = [
+  {
+    id: 'fila_ubs',
+    coluna: 'As equipes das UBS inserem todas as solicitações para agendamento de consultas e exames em fila de espera eletrônica?',
+    titulo: 'UBS inserem solicitações em fila eletrônica',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sempre', match: 'Sempre' },
+      { label: 'Na maioria dos casos', match: 'Na maioria do casos' },
+      { label: 'Apenas para alguns serviços', match: 'Apenas para alguns serviços' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'sistema_ubs',
+    titulo: 'Sistema utilizado nas UBS para solicitação',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Qual o sistema utilizado nas UBS para solicitação da vaga ? (choice=SISREG)', label: 'SISREG' },
+      { coluna: 'Qual o sistema utilizado nas UBS para solicitação da vaga ? (choice=SIRESP)', label: 'SIRESP' },
+      { coluna: 'Qual o sistema utilizado nas UBS para solicitação da vaga ? (choice=E-SUS Regulação)', label: 'E-SUS Regulação' },
+      { coluna: 'Qual o sistema utilizado nas UBS para solicitação da vaga ? (choice=Sistema próprio)', label: 'Sistema próprio' },
+      { coluna: 'Qual o sistema utilizado nas UBS para solicitação da vaga ? (choice=Outro)', label: 'Outro' }
+    ]
+  },
+  {
+    id: 'protocolos_municipais',
+    coluna: 'As equipes das UBS  utilizam os protocolos municipais de regulação para encaminhamento de pacientes na rede de saúde?',
+    titulo: 'UBS utilizam protocolos municipais',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Utilizam regularmente', match: 'Utilizam regularmente' },
+      { label: 'Utilizam pouco', match: 'Utilizam pouco' },
+      { label: 'Não utilizam', match: 'Não utilizam' }
+    ]
+  },
+  {
+    id: 'protocolos_regionais',
+    coluna: 'As equipes das UBS  utilizam os protocolos regionais de regulação para encaminhamento de pacientes na rede de saúde?',
+    titulo: 'UBS utilizam protocolos regionais',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Utilizam regularmente', match: 'Utilizam regularmente' },
+      { label: 'Utilizam pouco', match: 'Utilizam pouco' },
+      { label: 'Não utilizam', match: 'Não utilizam' }
+    ]
+  },
+  {
+    id: 'exames_complexidade',
+    coluna: 'As equipes das UBS podem solicitar diretamente exames de maior complexidade (por exemplo: tomografia, ressonância magnética, ecocardiograma, endoscopia ou colonoscopia) ou é necessário encaminhamento prévio para atenção especializada?',
+    titulo: 'UBS solicitam exames de maior complexidade',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Solicita conforme protocolos', match: 'A equipe de UBS pode solicitar diretamente, conforme protocolos definidos' },
+      { label: 'Solicita apenas alguns exames', match: 'A equipe da UBS pode solicitar diretamente apenas alguns exames' },
+      { label: 'Necessário encaminhamento prévio', match: 'É necessário encaminhamento prévio para atenção especializada' }
+    ]
+  },
+  {
+    id: 'acompanhamento_ubs',
+    coluna: 'As equipes das UBS acompanham o andamento da solicitação  após a inserção  no sistema de regulação?',
+    titulo: 'UBS acompanham andamento da solicitação',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Tem acesso e acompanha', match: 'A equipe tem acesso ao sistema e  acompanha' },
+      { label: 'Tem acesso mas não acompanha', match: 'A equipe tem acesso ao sistema e não acompanha' },
+      { label: 'Não tem acesso ao sistema', match: 'A equipe não tem acesso ao sistema' },
+      { label: 'Sistema não permite', match: 'O sistema de regulação não permite que a equipe acompanhe' }
+    ]
+  },
+  {
+    id: 'contrarreferencia',
+    coluna: 'Existe fluxo de contrarreferência entre os serviços de atenção hospitalar e a APS ?',
+    titulo: 'Fluxo de contrarreferência hospitalar-APS',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sempre', match: 'Sempre' },
+      { label: 'Na maioria dos casos', match: 'Na maioria do casos' },
+      { label: 'Apenas para alguns serviços', match: 'Apenas para alguns serviços' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'oferta_aae',
+    coluna: 'O município possui oferta de Atenção Ambulatorial Especializada (AAE) ?',
+    titulo: 'Possui oferta de AAE',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'sistema_aae',
+    coluna: 'Qual o sistema utilizado na AAE para solicitação de vaga ?',
+    titulo: 'Sistema utilizado na AAE',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'SISREG', match: 'SISREG' },
+      { label: 'SIRESP', match: 'SIRESP' },
+      { label: 'E-SUS Regulação', match: 'E-SUS Regulação' },
+      { label: 'Sistema próprio', match: 'Sistema próprio' }
+    ]
+  },
+  {
+    id: 'solicitacoes_hospitalar',
+    coluna: 'As solicitações de vaga hospitalar são registradas em sistema regulatório?',
+    titulo: 'Solicitações hospitalares em sistema',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Parcialmente', match: 'Parcialmente' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'comunicacao_samu',
+    coluna: 'Há comunicação formal entre SAMU e Central de Internações?',
+    titulo: 'Comunicação SAMU e Central de Internações',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Exclusivamente via regulação', match: 'Exclusivamente via regulação (CROSS ou central municipal)' },
+      { label: 'Preferencialmente via regulação', match: 'Preferencialmente via regulação' },
+      { label: 'Diretamente entre hospitais', match: 'Diretamente entre hospitais' }
+    ]
+  },
+  {
+    id: 'transferencia_hospitalar',
+    coluna: 'Como ocorre a solicitação de transferência hospitalar no município?',
+    titulo: 'Solicitação de transferência hospitalar',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Via central de regulação', match: 'Via central de regulação' },
+      { label: 'Via CROSS', match: 'Via CROSS' },
+      { label: 'Diretamente entre serviços', match: 'Diretamente entre serviços' },
+      { label: 'Outro', match: 'Outro' }
+    ]
+  },
+  {
+    id: 'classificacao_risco',
+    coluna: 'A classificação de risco é utilizada nos serviços de urgência do município?',
+    titulo: 'Classificação de risco nas urgências',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'vaga_zero',
+    coluna: 'O município utiliza o dispositivo de vaga zero em situações de urgência?',
+    titulo: 'Utiliza vaga zero em urgências',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'transferencia_urgencia',
+    coluna: 'Quando há necessidade de transferência de paciente em situação de urgência, como ocorre a regulação?',
+    titulo: 'Regulação de transferência em urgência',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Via central de regulação', match: 'Via central de regulação' },
+      { label: 'Via CROSS', match: 'Via CROSS' },
+      { label: 'Diretamente entre serviços', match: 'Diretamente entre serviços' }
+    ]
+  },
+  {
+    id: 'acompanhamento_sistema',
+    coluna: 'O sistema de regulação permite acompanhar o andamento das solicitações inseridas para consultas ou exames especializados?',
+    titulo: 'Sistema permite acompanhar solicitações',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, atualização em tempo real', match: 'Sim, atualização em tempo real' },
+      { label: 'Sim, atualização limitada', match: 'Sim, mas com atualização limitada' },
+      { label: 'Não permite acompanhamento', match: 'Não permite acompanhamento estruturado' }
+    ]
+  },
+  {
+    id: 'solicitacoes_duplicadas',
+    coluna: 'O sistema de regulação possui mecanismos para identificar solicitações duplicadas para o mesmo paciente e procedimento?',
+    titulo: 'Identificação de solicitações duplicadas',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, bloqueio automático', match: 'Sim, bloqueio automático' },
+      { label: 'Sim, identificação posterior', match: 'Sim, permite identificação posterior' },
+      { label: 'Não possui mecanismos', match: 'Não possui mecanismos de controle' }
+    ]
+  }
+];
+
+// Definição das perguntas do Bloco - Priorização Clínica
+const PERGUNTAS_BLOCO_PRIORIZACAO = [
+  {
+    id: 'protocolos_acesso',
+    coluna: 'Existem  protocolos de acesso  formalizados para as principais linhas de cuidado priorizadas na região?',
+    titulo: 'Protocolos de acesso formalizados',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'criterios_priorizacao',
+    coluna: 'Existem critérios de priorização baseados em protocolos e utilizados pela regulação para priorizar a lista de espera?',
+    titulo: 'Critérios de priorização baseados em protocolos',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'quais_criterios',
+    titulo: 'Critérios utilizados para priorização',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Quais critérios são utilizados para priorização?  (choice=Gravidade clínica)', label: 'Gravidade clínica' },
+      { coluna: 'Quais critérios são utilizados para priorização?  (choice=Risco de agravamento)', label: 'Risco de agravamento' },
+      { coluna: 'Quais critérios são utilizados para priorização?  (choice=Tempo de espera)', label: 'Tempo de espera' },
+      { coluna: 'Quais critérios são utilizados para priorização?  (choice=Vulnerabilidade social)', label: 'Vulnerabilidade social' },
+      { coluna: 'Quais critérios são utilizados para priorização?  (choice=Idade)', label: 'Idade' },
+      { coluna: 'Quais critérios são utilizados para priorização?  (choice=Condição funcional)', label: 'Condição funcional' },
+      { coluna: 'Quais critérios são utilizados para priorização?  (choice=Outros)', label: 'Outros' },
+      { coluna: 'Quais critérios são utilizados para priorização?  (choice=Não existe critérios definidos)', label: 'Não existe critérios definidos' }
+    ]
+  },
+  {
+    id: 'apoio_matricial',
+    coluna: 'Existe apoio matricial presencial ou remoto entre a atenção especializada e APS para qualificação dos encaminhamentos',
+    titulo: 'Apoio matricial para qualificação',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, sistematicamente', match: 'Sim, sistematicamente' },
+      { label: 'Sim, ocasionalmente', match: 'Sim, ocasionalmente' },
+      { label: 'Não existe', match: 'Não existe' }
+    ]
+  },
+  {
+    id: 'devolucao_demanda',
+    coluna: 'Quando uma solicitação é considerada inadequada no processo de regulação, existe devolução da demanda para equipe da UBS com orientação para qualificação dos encaminhamentos?',
+    titulo: 'Devolução de solicitação inadequada',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, com orientação clínica', match: 'Sim, com orientação clínica específica' },
+      { label: 'Sim, por questões administrativas', match: 'Sim, mas somente por questões administrativas' },
+      { label: 'Não é realizada devolução', match: 'Não é realizada devolução da solicitação' }
+    ]
+  },
+  {
+    id: 'protocolos_avaliacao',
+    coluna: 'Na prática, os protocolos são utilizados na avaliação das solicitações?',
+    titulo: 'Protocolos utilizados na avaliação',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sempre', match: 'Sempre' },
+      { label: 'Na maioria das vezes', match: 'Na maioria das vezes' },
+      { label: 'Ocasionalmente', match: 'Ocasionalmente' },
+      { label: 'Raramente', match: 'Raramente' },
+      { label: 'Não são utilizados', match: 'Não são utilizados' }
+    ]
+  },
+  {
+    id: 'criterio_agendamento',
+    coluna: 'Qual é o principal critério utilizado para definir o local de agendamento das consultas ou exames especializados?',
+    titulo: 'Critério para local de agendamento',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Prioriza vaga disponível', match: 'Prioriza o primeiro serviço com vaga disponível' },
+      { label: 'Prioriza proximidade', match: 'Prioriza serviços mais próximos da residência do paciente' },
+      { label: 'Combinação proximidade e vaga', match: 'Utiliza combinação de proximidade geográfica e disponibilidade de vagas' },
+      { label: 'Depende da especialidade', match: 'Depende da especialidade ou do serviço' }
+    ]
+  },
+  {
+    id: 'fluxos_formalizados_linhas',
+    coluna: 'Os fluxos de referência e contrarreferência estão formalizados para as principais linhas de cuidado priorizadas na região?',
+    titulo: 'Fluxos formalizados para linhas de cuidado',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'fluxos_samu',
+    coluna: 'Há fluxos pactuados para urgência pré-hospitalar (SAMU)?',
+    titulo: 'Fluxos pactuados para SAMU',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'fluxos_interhospitalar',
+    coluna: 'Há fluxos pactuados para urgência inter-hospitalar?',
+    titulo: 'Fluxos pactuados inter-hospitalar',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'fluxos_eletivas',
+    coluna: 'Há fluxos pactuados para internações eletivas?',
+    titulo: 'Fluxos pactuados para internações eletivas',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'fluxos_consultas',
+    coluna: 'Há fluxos pactuados para consultas especializadas e exames?',
+    titulo: 'Fluxos pactuados para consultas/exames',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'niveis_prioridade',
+    coluna: 'As solicitações são classificadas em níveis de prioridade clínica?',
+    titulo: 'Classificação em níveis de prioridade',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, classificação formal', match: 'Sim - classificação formal (urgente, prioritário, eletivo)' },
+      { label: 'Sim, classificação informal', match: 'Sim - classificação informal' },
+      { label: 'Não há classificação', match: 'Não há classificação' }
+    ]
+  },
+  {
+    id: 'quem_classifica',
+    titulo: 'Quem realiza a classificação de prioridade',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Quem realiza a classificação de prioridade das solicitações? (choice=Profissional da UBS)', label: 'Profissional da UBS' },
+      { coluna: 'Quem realiza a classificação de prioridade das solicitações? (choice=Profissional da eMulti)', label: 'Profissional da eMulti' },
+      { coluna: 'Quem realiza a classificação de prioridade das solicitações? (choice=Médico regulador)', label: 'Médico regulador' },
+      { coluna: 'Quem realiza a classificação de prioridade das solicitações? (choice=Equipe da Central de Regulação)', label: 'Equipe da Central de Regulação' },
+      { coluna: 'Quem realiza a classificação de prioridade das solicitações? (choice=Serviço solicitante)', label: 'Serviço solicitante' },
+      { coluna: 'Quem realiza a classificação de prioridade das solicitações? (choice=Serviço executantes)', label: 'Serviço executante' },
+      { coluna: 'Quem realiza a classificação de prioridade das solicitações? (choice=Outro)', label: 'Outro' }
+    ]
+  },
+  {
+    id: 'monitoramento_filas',
+    coluna: 'O município realiza monitoramento sistemático das filas de espera?',
+    titulo: 'Monitoramento sistemático das filas',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, com relatórios periódicos', match: 'Sim- com relatórios periódicos' },
+      { label: 'Sim, apenas pontualmente', match: 'Sim, apenas pontualmente' },
+      { label: 'Não realiza monitoramento', match: 'Não realiza monitoramento' }
+    ]
+  },
+  {
+    id: 'tempos_maximos',
+    coluna: 'Existem tempos máximos pactuados para atendimento por tipo de prioridade?',
+    titulo: 'Tempos máximos pactuados',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'tempo_espera',
+    coluna: 'Qual é o tempo médio de espera para acesso aos principais serviços especializados no território?',
+    titulo: 'Tempo médio de espera',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Até 30 dias', match: 'Até 30 dias' },
+      { label: '30 a 90 dias', match: '30 a 90 dias' },
+      { label: '3 a 6 meses', match: '3 a 6 meses' },
+      { label: 'Mais de 6 meses', match: 'Mais de 6 meses' },
+      { label: 'Não há monitoramento', match: 'Não há monitoramento' }
+    ]
+  },
+  {
+    id: 'atendimentos_fora_fila',
+    coluna: 'Ocorrem atendimentos fora da fila regulada?',
+    titulo: 'Atendimentos fora da fila regulada',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Nunca', match: 'Nunca' },
+      { label: 'Raramente', match: 'Raramente' },
+      { label: 'Frequentemente', match: 'Frequentemente' },
+      { label: 'Muito frequentemente', match: 'Muito frequentemente' }
+    ]
+  },
+  {
+    id: 'filas_paralelas',
+    coluna: 'Existem filas paralelas fora dos sistemas de informação mantidas por unidades ou hospitais?',
+    titulo: 'Filas paralelas fora do sistema',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'acesso_tempo_real',
+    coluna: 'A equipe reguladora tem acesso em tempo real à posição dos usuários na fila de espera?',
+    titulo: 'Acesso em tempo real à fila',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  }
 ];
 
 // Definição das perguntas do Bloco - Papel do município na RRAS
@@ -288,6 +878,7 @@ export function Analise() {
   const [selectedDRS, setSelectedDRS] = useState<string | null>(null);
   const [selectedMunicipio, setSelectedMunicipio] = useState<string | null>(null);
   const [selectedBloco, setSelectedBloco] = useState<string>('rras');
+  const [selectedInstituicao, setSelectedInstituicao] = useState<'Municipio' | 'DRS'>('Municipio');
 
   // Função de login
   const handleLogin = (e: React.FormEvent) => {
@@ -635,6 +1226,310 @@ export function Analise() {
     PERGUNTAS_BLOCO_ESTRUTURA[14].opcoes!
   );
 
+  // ========== ANÁLISES PARA DRS ==========
+  // Função para analisar pergunta de DRS (seleção única)
+  const analisarPerguntaDRS = (coluna: string, opcoes: {label: string, match: string}[]): ResultadoAnalise[] => {
+    const contagem: Record<string, number> = {};
+    let naoRespondido = 0;
+    let totalDRSAnalisados = 0;
+    
+    dadosBrutosFiltrados.forEach(row => {
+      const instituicao = row['Instituição do respondente'];
+      if (instituicao !== 'DRS') return;
+      
+      totalDRSAnalisados++;
+      const valor = row[coluna];
+      
+      if (valor && valor.trim()) {
+        contagem[valor] = (contagem[valor] || 0) + 1;
+      } else {
+        naoRespondido++;
+      }
+    });
+
+    const resultado = opcoes.map(opcao => {
+      const chaveEncontrada = Object.keys(contagem).find(k => 
+        k.toLowerCase().includes(opcao.match.toLowerCase())
+      );
+      const quantidade = chaveEncontrada ? contagem[chaveEncontrada] : 0;
+      const percentual = totalDRSAnalisados > 0 ? (quantidade / totalDRSAnalisados) * 100 : 0;
+      return { label: opcao.label, quantidade, percentual };
+    });
+    
+    if (naoRespondido > 0) {
+      const percentual = totalDRSAnalisados > 0 ? (naoRespondido / totalDRSAnalisados) * 100 : 0;
+      resultado.push({ label: 'Não respondido', quantidade: naoRespondido, percentual });
+    }
+    
+    return resultado;
+  };
+
+  // Função para analisar checkbox de DRS
+  const analisarCheckboxDRS = (colunas: {coluna: string, label: string}[]): ResultadoAnalise[] => {
+    const dadosDRS = dadosBrutosFiltrados.filter(row => 
+      row['Instituição do respondente'] === 'DRS'
+    );
+    const totalDRSAnalisados = dadosDRS.length;
+    
+    return colunas.map(({ coluna, label }) => {
+      let quantidade = 0;
+      dadosDRS.forEach(row => {
+        if (row[coluna] === 'Checked') quantidade++;
+      });
+      const percentual = totalDRSAnalisados > 0 ? (quantidade / totalDRSAnalisados) * 100 : 0;
+      return { label, quantidade, percentual };
+    });
+  };
+
+  // Análises do Bloco Estrutura DRS
+  const analiseSistemasDRS = analisarCheckboxDRS(
+    PERGUNTAS_BLOCO_ESTRUTURA_DRS[0].colunas!
+  );
+
+  const analiseAcessoSIRESP = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_ESTRUTURA_DRS[1].coluna!,
+    PERGUNTAS_BLOCO_ESTRUTURA_DRS[1].opcoes!
+  );
+
+  const analiseIntegracaoSistemasDRS = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_ESTRUTURA_DRS[2].coluna!,
+    PERGUNTAS_BLOCO_ESTRUTURA_DRS[2].opcoes!
+  );
+
+  // ========== ANÁLISES DO BLOCO ORDENAÇÃO DA DEMANDA (DRS) ==========
+  const analiseDiretrizesRegionais = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[0].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[0].opcoes!
+  );
+
+  const analiseFluxosDRS = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[1].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[1].opcoes!
+  );
+
+  const analiseEspacosGovernanca = analisarCheckboxDRS(
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[2].colunas!
+  );
+
+  const analiseFluxosFormalizados = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[3].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[3].opcoes!
+  );
+
+  const analiseArticulacaoAPS = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[4].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[4].opcoes!
+  );
+
+  const analiseSolicitacoesMunicipais = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[5].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[5].opcoes!
+  );
+
+  const analiseRegulacaoInternacoes = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[6].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[6].opcoes!
+  );
+
+  const analiseProtocoloVagaZero = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[7].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[7].opcoes!
+  );
+
+  const analisePapelDRSAmbulatorial = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[8].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[8].opcoes!
+  );
+
+  const analisePapelDRSHospitalar = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[9].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO_DRS[9].opcoes!
+  );
+
+  // ========== ANÁLISES DO BLOCO ORDENAÇÃO DA DEMANDA ==========
+  const analiseFilaUBS = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[0].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[0].opcoes!
+  );
+
+  const analiseSistemaUBS = analisarCheckbox(
+    PERGUNTAS_BLOCO_ORDENACAO[1].colunas!
+  );
+
+  const analiseProtocolosMunicipais = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[2].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[2].opcoes!
+  );
+
+  const analiseProtocolosRegionais = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[3].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[3].opcoes!
+  );
+
+  const analiseExamesComplexidade = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[4].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[4].opcoes!
+  );
+
+  const analiseAcompanhamentoUBS = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[5].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[5].opcoes!
+  );
+
+  const analiseContrarreferencia = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[6].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[6].opcoes!
+  );
+
+  const analiseOfertaAAE = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[7].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[7].opcoes!
+  );
+
+  const analiseSistemaAAE = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[8].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[8].opcoes!
+  );
+
+  const analiseSolicitacoesHospitalar = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[9].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[9].opcoes!
+  );
+
+  const analiseComunicacaoSAMU = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[10].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[10].opcoes!
+  );
+
+  const analiseTransferenciaHospitalar = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[11].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[11].opcoes!
+  );
+
+  const analiseClassificacaoRisco = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[12].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[12].opcoes!
+  );
+
+  const analiseVagaZero = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[13].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[13].opcoes!
+  );
+
+  const analiseTransferenciaUrgencia = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[14].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[14].opcoes!
+  );
+
+  const analiseAcompanhamentoSistema = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[15].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[15].opcoes!
+  );
+
+  const analiseSolicitacoesDuplicadas = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[16].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[16].opcoes!
+  );
+
+  // ========== ANÁLISES DO BLOCO PRIORIZAÇÃO CLÍNICA ==========
+  const analiseProtocolosAcesso = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[0].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[0].opcoes!
+  );
+
+  const analiseCriteriosPriorizacao = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[1].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[1].opcoes!
+  );
+
+  const analiseQuaisCriterios = analisarCheckbox(
+    PERGUNTAS_BLOCO_PRIORIZACAO[2].colunas!
+  );
+
+  const analiseApoioMatricial = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[3].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[3].opcoes!
+  );
+
+  const analiseDevolucaoDemanda = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[4].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[4].opcoes!
+  );
+
+  const analiseProtocolosAvaliacao = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[5].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[5].opcoes!
+  );
+
+  const analiseCriterioAgendamento = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[6].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[6].opcoes!
+  );
+
+  const analiseFluxosLinhasCuidado = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[7].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[7].opcoes!
+  );
+
+  const analiseFluxosSAMU = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[8].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[8].opcoes!
+  );
+
+  const analiseFluxosInterhospitalar = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[9].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[9].opcoes!
+  );
+
+  const analiseFluxosEletivas = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[10].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[10].opcoes!
+  );
+
+  const analiseFluxosConsultas = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[11].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[11].opcoes!
+  );
+
+  const analiseNiveisPrioridade = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[12].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[12].opcoes!
+  );
+
+  const analiseQuemClassifica = analisarCheckbox(
+    PERGUNTAS_BLOCO_PRIORIZACAO[13].colunas!
+  );
+
+  const analiseMonitoramentoFilas = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[14].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[14].opcoes!
+  );
+
+  const analiseTemposMaximos = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[15].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[15].opcoes!
+  );
+
+  const analiseTempoEspera = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[16].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[16].opcoes!
+  );
+
+  const analiseAtendimentosForaFila = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[17].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[17].opcoes!
+  );
+
+  const analiseFilasParalelas = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[18].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[18].opcoes!
+  );
+
+  const analiseAcessoTempoReal = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[19].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[19].opcoes!
+  );
+
 // Componente compacto para exibir uma pergunta
   const PerguntaCompacta = ({ 
     titulo, 
@@ -801,28 +1696,42 @@ export function Analise() {
             <span className="text-sm font-medium text-slate-600">Filtros:</span>
           </div>
           <select
+            value={selectedInstituicao}
+            onChange={(e) => {
+              const inst = e.target.value as 'Municipio' | 'DRS';
+              setSelectedInstituicao(inst);
+              setSelectedBloco(inst === 'Municipio' ? 'rras' : 'estrutura_drs');
+            }}
+            className="px-2 py-1 border border-purple-300 bg-purple-50 rounded text-sm font-medium text-purple-700 focus:outline-none focus:ring-1 focus:ring-purple-500"
+          >
+            <option value="Municipio">Município</option>
+            <option value="DRS">DRS</option>
+          </select>
+          <select
             value={selectedBloco}
             onChange={(e) => setSelectedBloco(e.target.value)}
             className="px-2 py-1 border border-teal-300 bg-teal-50 rounded text-sm font-medium text-teal-700 focus:outline-none focus:ring-1 focus:ring-teal-500"
           >
-            {BLOCOS.map(bloco => (
+            {(selectedInstituicao === 'Municipio' ? BLOCOS_MUNICIPIO : BLOCOS_DRS).map(bloco => (
               <option key={bloco.id} value={bloco.id}>{bloco.nome}</option>
             ))}
           </select>
-          <select
-            value={selectedRRAS || ''}
-            onChange={(e) => {
-              setSelectedRRAS(e.target.value || null);
-              setSelectedDRS(null);
-              setSelectedMunicipio(null);
-            }}
-            className="px-2 py-1 border border-slate-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          >
-            <option value="">Todas RRAS</option>
-            {rrasList.map(rras => (
-              <option key={rras} value={rras}>{rras}</option>
-            ))}
-          </select>
+          {selectedInstituicao === 'Municipio' && (
+            <select
+              value={selectedRRAS || ''}
+              onChange={(e) => {
+                setSelectedRRAS(e.target.value || null);
+                setSelectedDRS(null);
+                setSelectedMunicipio(null);
+              }}
+              className="px-2 py-1 border border-slate-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="">Todas RRAS</option>
+              {rrasList.map(rras => (
+                <option key={rras} value={rras}>{rras}</option>
+              ))}
+            </select>
+          )}
           <select
             value={selectedDRS || ''}
             onChange={(e) => {
@@ -982,6 +1891,328 @@ export function Analise() {
               titulo="Quem oferta o serviço de apoio remoto"
               dados={analiseOfertaApoioRemoto}
               corIndex={2}
+            />
+          </div>
+        </motion.div>
+      )}
+
+      {/* Bloco - Ordenação da Demanda */}
+      {selectedBloco === 'ordenacao' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Network className="w-5 h-5 text-amber-600" />
+            <h2 className="font-semibold text-slate-800">Ordenação da Demanda</h2>
+            <span className="text-xs text-slate-400 ml-auto">{totalMunicipios} municípios</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <PerguntaCompacta 
+              titulo="UBS inserem solicitações em fila eletrônica"
+              dados={analiseFilaUBS}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Sistema utilizado nas UBS"
+              dados={analiseSistemaUBS}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="UBS utilizam protocolos municipais"
+              dados={analiseProtocolosMunicipais}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="UBS utilizam protocolos regionais"
+              dados={analiseProtocolosRegionais}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="UBS solicitam exames de maior complexidade"
+              dados={analiseExamesComplexidade}
+              corIndex={4}
+            />
+            <PerguntaCompacta 
+              titulo="UBS acompanham andamento da solicitação"
+              dados={analiseAcompanhamentoUBS}
+              corIndex={5}
+            />
+            <PerguntaCompacta 
+              titulo="Fluxo de contrarreferência hospitalar-APS"
+              dados={analiseContrarreferencia}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Possui oferta de AAE"
+              dados={analiseOfertaAAE}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Sistema utilizado na AAE"
+              dados={analiseSistemaAAE}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Solicitações hospitalares em sistema"
+              dados={analiseSolicitacoesHospitalar}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="Comunicação SAMU e Central de Internações"
+              dados={analiseComunicacaoSAMU}
+              corIndex={4}
+            />
+            <PerguntaCompacta 
+              titulo="Solicitação de transferência hospitalar"
+              dados={analiseTransferenciaHospitalar}
+              corIndex={5}
+            />
+            <PerguntaCompacta 
+              titulo="Classificação de risco nas urgências"
+              dados={analiseClassificacaoRisco}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Utiliza vaga zero em urgências"
+              dados={analiseVagaZero}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Regulação de transferência em urgência"
+              dados={analiseTransferenciaUrgencia}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Sistema permite acompanhar solicitações"
+              dados={analiseAcompanhamentoSistema}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="Identificação de solicitações duplicadas"
+              dados={analiseSolicitacoesDuplicadas}
+              corIndex={4}
+            />
+          </div>
+        </motion.div>
+      )}
+
+      {/* Bloco - Priorização Clínica */}
+      {selectedBloco === 'priorizacao' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Network className="w-5 h-5 text-rose-600" />
+            <h2 className="font-semibold text-slate-800">Priorização Clínica</h2>
+            <span className="text-xs text-slate-400 ml-auto">{totalMunicipios} municípios</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <PerguntaCompacta 
+              titulo="Protocolos de acesso formalizados"
+              dados={analiseProtocolosAcesso}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Critérios de priorização em protocolos"
+              dados={analiseCriteriosPriorizacao}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Critérios utilizados para priorização"
+              dados={analiseQuaisCriterios}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Apoio matricial para qualificação"
+              dados={analiseApoioMatricial}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="Devolução de solicitação inadequada"
+              dados={analiseDevolucaoDemanda}
+              corIndex={4}
+            />
+            <PerguntaCompacta 
+              titulo="Protocolos utilizados na avaliação"
+              dados={analiseProtocolosAvaliacao}
+              corIndex={5}
+            />
+            <PerguntaCompacta 
+              titulo="Critério para local de agendamento"
+              dados={analiseCriterioAgendamento}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Fluxos formalizados para linhas de cuidado"
+              dados={analiseFluxosLinhasCuidado}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Fluxos pactuados para SAMU"
+              dados={analiseFluxosSAMU}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Fluxos pactuados inter-hospitalar"
+              dados={analiseFluxosInterhospitalar}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="Fluxos pactuados para internações eletivas"
+              dados={analiseFluxosEletivas}
+              corIndex={4}
+            />
+            <PerguntaCompacta 
+              titulo="Fluxos pactuados para consultas/exames"
+              dados={analiseFluxosConsultas}
+              corIndex={5}
+            />
+            <PerguntaCompacta 
+              titulo="Classificação em níveis de prioridade"
+              dados={analiseNiveisPrioridade}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Quem realiza a classificação"
+              dados={analiseQuemClassifica}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Monitoramento sistemático das filas"
+              dados={analiseMonitoramentoFilas}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Tempos máximos pactuados"
+              dados={analiseTemposMaximos}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="Tempo médio de espera"
+              dados={analiseTempoEspera}
+              corIndex={4}
+            />
+            <PerguntaCompacta 
+              titulo="Atendimentos fora da fila regulada"
+              dados={analiseAtendimentosForaFila}
+              corIndex={5}
+            />
+            <PerguntaCompacta 
+              titulo="Filas paralelas fora do sistema"
+              dados={analiseFilasParalelas}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Acesso em tempo real à fila"
+              dados={analiseAcessoTempoReal}
+              corIndex={1}
+            />
+          </div>
+        </motion.div>
+      )}
+
+      {/* Bloco - Estrutura e Sistemas do DRS */}
+      {selectedBloco === 'estrutura_drs' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Network className="w-5 h-5 text-purple-600" />
+            <h2 className="font-semibold text-slate-800">Estrutura e Sistemas do DRS</h2>
+            <span className="text-xs text-slate-400 ml-auto">{totalDRS} DRS</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <PerguntaCompacta 
+              titulo="Sistemas de regulação utilizados"
+              dados={analiseSistemasDRS}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Acesso ao SIRESP"
+              dados={analiseAcessoSIRESP}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Formato de integração de sistemas"
+              dados={analiseIntegracaoSistemasDRS}
+              corIndex={2}
+            />
+          </div>
+        </motion.div>
+      )}
+
+      {/* Bloco - Ordenação da Demanda (DRS) */}
+      {selectedBloco === 'ordenacao_drs' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Network className="w-5 h-5 text-purple-600" />
+            <h2 className="font-semibold text-slate-800">Ordenação da Demanda (DRS)</h2>
+            <span className="text-xs text-slate-400 ml-auto">{totalDRS} DRS</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <PerguntaCompacta 
+              titulo="Diretrizes regionais para ordenação"
+              dados={analiseDiretrizesRegionais}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="DRS participa da definição de fluxos"
+              dados={analiseFluxosDRS}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Espaços de governança regionais"
+              dados={analiseEspacosGovernanca}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Fluxos regionais formalizados"
+              dados={analiseFluxosFormalizados}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="Articulação APS com regulação"
+              dados={analiseArticulacaoAPS}
+              corIndex={4}
+            />
+            <PerguntaCompacta 
+              titulo="Organização das solicitações municipais"
+              dados={analiseSolicitacoesMunicipais}
+              corIndex={5}
+            />
+            <PerguntaCompacta 
+              titulo="Regulação de internações de urgência"
+              dados={analiseRegulacaoInternacoes}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Protocolo regional para vaga zero"
+              dados={analiseProtocoloVagaZero}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Papel do DRS na dificuldade ambulatorial"
+              dados={analisePapelDRSAmbulatorial}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Papel do DRS na dificuldade hospitalar"
+              dados={analisePapelDRSHospitalar}
+              corIndex={3}
             />
           </div>
         </motion.div>

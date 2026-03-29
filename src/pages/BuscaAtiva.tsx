@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Building2, Network, CheckCircle2, Clock, MapPin, Users, Search, BarChart3, TrendingUp } from 'lucide-react';
+import { Building2, Network, CheckCircle2, Clock, MapPin, Users, Search, BarChart3, TrendingUp, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { FilterPanel } from '../components/FilterPanel';
 import { SPMapLeaflet } from '../components/SPMapLeaflet';
@@ -35,6 +35,11 @@ export function BuscaAtiva() {
   const [duplicados, setDuplicados] = useState<MunicipioDuplicado[]>([]);
   const [serieHistoricaFiltro, setSerieHistoricaFiltro] = useState<'todos' | 'municipio' | 'drs'>('todos');
   const [serieHistoricaTipo, setSerieHistoricaTipo] = useState<'acumulado' | 'diario'>('acumulado');
+  
+  // Estados de ordenação para os painéis
+  const [ordenacaoDRS, setOrdenacaoDRS] = useState<'progresso' | 'az' | 'za'>('progresso');
+  const [ordenacaoRRAS, setOrdenacaoRRAS] = useState<'progresso' | 'numerico' | 'numerico_desc'>('progresso');
+  const [ordenacaoRegiao, setOrdenacaoRegiao] = useState<'progresso' | 'az' | 'za'>('progresso');
 
   useEffect(() => {
     async function loadData() {
@@ -93,7 +98,11 @@ export function BuscaAtiva() {
       isDRSRespondida,
       isDRSEmAndamento
     };
-  }).sort((a, b) => b.percent - a.percent);
+  }).sort((a, b) => {
+    if (ordenacaoDRS === 'az') return a.drs.localeCompare(b.drs);
+    if (ordenacaoDRS === 'za') return b.drs.localeCompare(a.drs);
+    return b.percent - a.percent; // progresso
+  });
 
   // Stats by RRAS for insights - ALL RRAS
   const rrasSummary = [...new Set(municipiosFiltrados.map(m => m.rras))].map(rras => {
@@ -111,7 +120,19 @@ export function BuscaAtiva() {
       emAndamento,
       percent: total > 0 ? (respondidos / total) * 100 : 0 
     };
-  }).sort((a, b) => b.percent - a.percent);
+  }).sort((a, b) => {
+    if (ordenacaoRRAS === 'numerico') {
+      const numA = parseInt(a.rras.replace(/\D/g, '')) || 0;
+      const numB = parseInt(b.rras.replace(/\D/g, '')) || 0;
+      return numA - numB;
+    }
+    if (ordenacaoRRAS === 'numerico_desc') {
+      const numA = parseInt(a.rras.replace(/\D/g, '')) || 0;
+      const numB = parseInt(b.rras.replace(/\D/g, '')) || 0;
+      return numB - numA;
+    }
+    return b.percent - a.percent; // progresso
+  });
 
   // Stats by Região de Saúde
   // Verde (completa) apenas quando 100% dos municípios da região respondem
@@ -136,7 +157,63 @@ export function BuscaAtiva() {
       isRegiaoCompleta,
       isRegiaoEmAndamento
     };
-  }).sort((a, b) => b.percent - a.percent);
+  }).sort((a, b) => {
+    if (ordenacaoRegiao === 'az') return a.regiao.localeCompare(b.regiao);
+    if (ordenacaoRegiao === 'za') return b.regiao.localeCompare(a.regiao);
+    return b.percent - a.percent; // progresso
+  });
+
+  // Funções de download CSV
+  const downloadCSV = (data: string, filename: string) => {
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + data], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  const downloadDRSCSV = () => {
+    const headers = ['DRS', 'Respondidos', 'Total', 'Percentual', 'Status DRS', 'Status Municípios'];
+    const rows = drsSummary.map(item => [
+      item.drs,
+      item.respondidos,
+      item.total,
+      item.percent.toFixed(1) + '%',
+      item.isDRSRespondida ? 'Completa' : item.isDRSEmAndamento ? 'Em Andamento' : 'Pendente',
+      `${item.respondidos}/${item.total}`
+    ]);
+    const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+    downloadCSV(csv, 'progresso_drs.csv');
+  };
+
+  const downloadRRASCSV = () => {
+    const headers = ['RRAS', 'Respondidos', 'Em Andamento', 'Total', 'Percentual'];
+    const rows = rrasSummary.map(item => [
+      item.rras,
+      item.respondidos,
+      item.emAndamento,
+      item.total,
+      item.percent.toFixed(1) + '%'
+    ]);
+    const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+    downloadCSV(csv, 'progresso_rras.csv');
+  };
+
+  const downloadRegiaoCSV = () => {
+    const headers = ['Região de Saúde', 'Respondidos', 'Em Andamento', 'Total', 'Percentual', 'Status'];
+    const rows = regiaoSaudeSummary.map(item => [
+      item.regiao,
+      item.respondidos,
+      item.emAndamento,
+      item.total,
+      item.percent.toFixed(1) + '%',
+      item.isRegiaoCompleta ? 'Completa' : item.isRegiaoEmAndamento ? 'Em Andamento' : 'Pendente'
+    ]);
+    const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+    downloadCSV(csv, 'progresso_regiao_saude.csv');
+  };
 
   // Série histórica por dia (respostas completas)
   const serieHistorica = (() => {
@@ -741,13 +818,33 @@ export function BuscaAtiva() {
         {/* DRS Panel */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="p-3 border-b border-slate-100 bg-gradient-to-r from-teal-50 to-white">
-            <div className="flex items-center gap-2">
-              <div className="bg-gradient-to-br from-teal-500 to-emerald-600 p-1.5 rounded-lg">
-                <Building2 className="w-4 h-4 text-white" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="bg-gradient-to-br from-teal-500 to-emerald-600 p-1.5 rounded-lg">
+                  <Building2 className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-800 text-sm">Progresso por DRS</h3>
+                  <p className="text-xs text-slate-500">{drsSummary.length} DRS • {kpis.drsCompletas} completas</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-slate-800 text-sm">Progresso por DRS</h3>
-                <p className="text-xs text-slate-500">{drsSummary.length} DRS • {kpis.drsCompletas} completas</p>
+              <div className="flex items-center gap-1">
+                <select
+                  value={ordenacaoDRS}
+                  onChange={(e) => setOrdenacaoDRS(e.target.value as 'progresso' | 'az' | 'za')}
+                  className="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white text-slate-600 cursor-pointer hover:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400"
+                >
+                  <option value="progresso">% Progresso</option>
+                  <option value="az">A → Z</option>
+                  <option value="za">Z → A</option>
+                </select>
+                <button
+                  onClick={downloadDRSCSV}
+                  className="p-1.5 rounded-lg hover:bg-teal-100 text-teal-600 transition-colors"
+                  title="Baixar CSV"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>
@@ -813,13 +910,33 @@ export function BuscaAtiva() {
         {/* RRAS Panel */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="p-3 border-b border-slate-100 bg-gradient-to-r from-cyan-50 to-white">
-            <div className="flex items-center gap-2">
-              <div className="bg-gradient-to-br from-cyan-500 to-teal-600 p-1.5 rounded-lg">
-                <Network className="w-4 h-4 text-white" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="bg-gradient-to-br from-cyan-500 to-teal-600 p-1.5 rounded-lg">
+                  <Network className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-800 text-sm">Progresso por RRAS</h3>
+                  <p className="text-xs text-slate-500">{rrasSummary.length} RRAS • {kpis.rrasCobertas} completas</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-slate-800 text-sm">Progresso por RRAS</h3>
-                <p className="text-xs text-slate-500">{rrasSummary.length} RRAS • {kpis.rrasCobertas} completas</p>
+              <div className="flex items-center gap-1">
+                <select
+                  value={ordenacaoRRAS}
+                  onChange={(e) => setOrdenacaoRRAS(e.target.value as 'progresso' | 'numerico' | 'numerico_desc')}
+                  className="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white text-slate-600 cursor-pointer hover:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                >
+                  <option value="progresso">% Progresso</option>
+                  <option value="numerico">RRAS 1 → 19</option>
+                  <option value="numerico_desc">RRAS 19 → 1</option>
+                </select>
+                <button
+                  onClick={downloadRRASCSV}
+                  className="p-1.5 rounded-lg hover:bg-cyan-100 text-cyan-600 transition-colors"
+                  title="Baixar CSV"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>
@@ -885,13 +1002,33 @@ export function BuscaAtiva() {
         {/* Região de Saúde Panel */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="p-3 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-white">
-            <div className="flex items-center gap-2">
-              <div className="bg-gradient-to-br from-purple-500 to-indigo-600 p-1.5 rounded-lg">
-                <MapPin className="w-4 h-4 text-white" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="bg-gradient-to-br from-purple-500 to-indigo-600 p-1.5 rounded-lg">
+                  <MapPin className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-800 text-sm">Progresso por Região de Saúde</h3>
+                  <p className="text-xs text-slate-500">{regiaoSaudeSummary.length} regiões • {kpis.regioesSaudeRespondidas} respondidas</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-slate-800 text-sm">Progresso por Região de Saúde</h3>
-                <p className="text-xs text-slate-500">{regiaoSaudeSummary.length} regiões • {kpis.regioesSaudeRespondidas} respondidas</p>
+              <div className="flex items-center gap-1">
+                <select
+                  value={ordenacaoRegiao}
+                  onChange={(e) => setOrdenacaoRegiao(e.target.value as 'progresso' | 'az' | 'za')}
+                  className="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white text-slate-600 cursor-pointer hover:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
+                >
+                  <option value="progresso">% Progresso</option>
+                  <option value="az">A → Z</option>
+                  <option value="za">Z → A</option>
+                </select>
+                <button
+                  onClick={downloadRegiaoCSV}
+                  className="p-1.5 rounded-lg hover:bg-purple-100 text-purple-600 transition-colors"
+                  title="Baixar CSV"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>
