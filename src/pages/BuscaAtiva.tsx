@@ -357,6 +357,47 @@ export function BuscaAtiva() {
 
   const currentCounts = statusFilterType === 'municipio' ? countByMunicipio : countByDRS;
 
+  // Lista de DRS com suas RRAS para visualização compacta
+  const drsComRRAS = (() => {
+    const drsMap = new Map<string, { drs: string; rras: Set<string>; status: 'respondido' | 'em_andamento' | 'pendente' }>();
+    
+    municipiosFiltrados.forEach(m => {
+      if (!drsMap.has(m.drs)) {
+        drsMap.set(m.drs, {
+          drs: m.drs,
+          rras: new Set(),
+          status: getStatusDRS(m.drs)
+        });
+      }
+      drsMap.get(m.drs)!.rras.add(m.rras);
+    });
+
+    return Array.from(drsMap.values())
+      .map(item => ({
+        drs: item.drs,
+        rras: Array.from(item.rras).sort((a, b) => {
+          const numA = parseInt(a.replace(/\D/g, '')) || 0;
+          const numB = parseInt(b.replace(/\D/g, '')) || 0;
+          return numA - numB;
+        }),
+        status: item.status
+      }))
+      .sort((a, b) => {
+        // Ordenar: pendentes primeiro, depois em andamento, depois respondidos
+        const ordem: Record<'pendente' | 'em_andamento' | 'respondido', number> = { pendente: 0, em_andamento: 1, respondido: 2 };
+        return ordem[a.status] - ordem[b.status] || a.drs.localeCompare(b.drs);
+      });
+  })();
+
+  // Filtrar DRS pela busca e status
+  const drsFiltrados = drsComRRAS.filter(item => {
+    const matchSearch = item.drs.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.rras.some(r => r.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchStatus = selectedStatus === 'todos' || item.status === selectedStatus;
+    return matchSearch && matchStatus;
+  });
+
   const totalPagesMunicipios = Math.ceil(municipiosFiltradosBusca.length / itemsPerPage);
   const paginatedMunicipios = municipiosFiltradosBusca.slice(
     (currentPage - 1) * itemsPerPage,
@@ -1259,75 +1300,133 @@ export function BuscaAtiva() {
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Município
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  DRS
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  RRAS
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Região de Saúde
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {paginatedMunicipios.map((municipio, index) => {
-                const drsStatus = getStatusDRS(municipio.drs);
-                return (
+          {statusFilterType === 'municipio' ? (
+            <table className="w-full">
+              <thead className="bg-slate-50 border-b border-slate-100">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    Município
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    DRS
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    RRAS
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    Região de Saúde
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {paginatedMunicipios.map((municipio, index) => {
+                  const drsStatus = getStatusDRS(municipio.drs);
+                  return (
+                    <motion.tr 
+                      key={municipio.codigo}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.03 * index }}
+                      className={`transition-colors ${
+                        municipio.status === 'respondido' ? 'bg-emerald-50/30 hover:bg-emerald-50' :
+                        municipio.status === 'em_andamento' ? 'bg-amber-50/30 hover:bg-amber-50' :
+                        'hover:bg-red-50/30'
+                      }`}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {/* Semáforo do Município */}
+                          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                            municipio.status === 'respondido' ? 'bg-emerald-500' :
+                            municipio.status === 'em_andamento' ? 'bg-amber-400' :
+                            'bg-red-400'
+                          }`}></div>
+                          <span className={`text-sm font-medium ${
+                            municipio.status === 'respondido' ? 'text-emerald-700' :
+                            municipio.status === 'em_andamento' ? 'text-amber-700' :
+                            'text-slate-800'
+                          }`}>{municipio.nome}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {/* Semáforo da DRS */}
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                            drsStatus === 'respondido' ? 'bg-emerald-500' :
+                            drsStatus === 'em_andamento' ? 'bg-amber-400' :
+                            'bg-red-400'
+                          }`}></div>
+                          <span className="text-sm text-slate-600">{municipio.drs}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md">
+                          {municipio.rras}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-500">{municipio.regiaoSaude}</td>
+                    </motion.tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            /* Visualização compacta por DRS */
+            <table className="w-full">
+              <thead className="bg-slate-50 border-b border-slate-100">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-16">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    DRS
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    RRAS
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {drsFiltrados.map((item, index) => (
                   <motion.tr 
-                    key={municipio.codigo}
+                    key={item.drs}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.03 * index }}
                     className={`transition-colors ${
-                      municipio.status === 'respondido' ? 'bg-emerald-50/30 hover:bg-emerald-50' :
-                      municipio.status === 'em_andamento' ? 'bg-amber-50/30 hover:bg-amber-50' :
+                      item.status === 'respondido' ? 'bg-emerald-50/30 hover:bg-emerald-50' :
+                      item.status === 'em_andamento' ? 'bg-amber-50/30 hover:bg-amber-50' :
                       'hover:bg-red-50/30'
                     }`}
                   >
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {/* Semáforo do Município */}
-                        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                          municipio.status === 'respondido' ? 'bg-emerald-500' :
-                          municipio.status === 'em_andamento' ? 'bg-amber-400' :
-                          'bg-red-400'
-                        }`}></div>
-                        <span className={`text-sm font-medium ${
-                          municipio.status === 'respondido' ? 'text-emerald-700' :
-                          municipio.status === 'em_andamento' ? 'text-amber-700' :
-                          'text-slate-800'
-                        }`}>{municipio.nome}</span>
-                      </div>
+                      <div className={`w-3 h-3 rounded-full ${
+                        item.status === 'respondido' ? 'bg-emerald-500' :
+                        item.status === 'em_andamento' ? 'bg-amber-400' :
+                        'bg-red-400'
+                      }`}></div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {/* Semáforo da DRS */}
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                          drsStatus === 'respondido' ? 'bg-emerald-500' :
-                          drsStatus === 'em_andamento' ? 'bg-amber-400' :
-                          'bg-red-400'
-                        }`}></div>
-                        <span className="text-sm text-slate-600">{municipio.drs}</span>
-                      </div>
+                      <span className={`text-sm font-medium ${
+                        item.status === 'respondido' ? 'text-emerald-700' :
+                        item.status === 'em_andamento' ? 'text-amber-700' :
+                        'text-slate-800'
+                      }`}>{item.drs}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md">
-                        {municipio.rras}
-                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {item.rras.map(rras => (
+                          <span key={rras} className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md">
+                            {rras}
+                          </span>
+                        ))}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-500">{municipio.regiaoSaude}</td>
                   </motion.tr>
-                );
-              })}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Pagination */}

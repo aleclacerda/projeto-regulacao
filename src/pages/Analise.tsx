@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3, Filter, Network, Lock, LogOut } from 'lucide-react';
 import { loadMunicipios, loadRespostas, normalizeNome } from '../utils/dataLoader';
@@ -18,12 +18,17 @@ const BLOCOS_MUNICIPIO = [
   { id: 'rras', nome: 'Papel do município na RRAS' },
   { id: 'estrutura', nome: 'Estrutura da Regulação' },
   { id: 'ordenacao', nome: 'Ordenação da Demanda' },
-  { id: 'priorizacao', nome: 'Priorização Clínica' }
+  { id: 'priorizacao', nome: 'Priorização Clínica' },
+  { id: 'gestao_oferta', nome: 'Gestão de Oferta' },
+  { id: 'governanca', nome: 'Governança' }
 ];
 
 const BLOCOS_DRS = [
   { id: 'estrutura_drs', nome: 'Estrutura e Sistemas do DRS' },
-  { id: 'ordenacao_drs', nome: 'Ordenação da Demanda (DRS)' }
+  { id: 'ordenacao_drs', nome: 'Ordenação da Demanda (DRS)' },
+  { id: 'priorizacao_drs', nome: 'Priorização Clínica (DRS)' },
+  { id: 'gestao_oferta_drs', nome: 'Gestão de Oferta (DRS)' },
+  { id: 'governanca_drs', nome: 'Governança (DRS)' }
 ];
 
 // Definição das perguntas do Bloco - Ordenação da Demanda (DRS)
@@ -146,6 +151,278 @@ const PERGUNTAS_BLOCO_ORDENACAO_DRS = [
       { label: 'Media municípios', match: 'Media municípios' },
       { label: 'Apenas acompanha', match: 'Apenas acompanha' },
       { label: 'Não atua', match: 'Não atua' }
+    ]
+  }
+];
+
+// Definição das perguntas do Bloco - Priorização Clínica (DRS)
+const PERGUNTAS_BLOCO_PRIORIZACAO_DRS = [
+  {
+    id: 'protocolos_ambulatorial_drs',
+    coluna: 'Existem protocolos regionais de priorização clínica para regulação do acesso à atenção ambulatorial e hospitalar eletiva?',
+    titulo: 'Protocolos regionais para ambulatorial/hospitalar eletiva',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, formalizados', match: 'Sim, formalizados' },
+      { label: 'Sim, porém não formalizado', match: 'Sim, porém não formalizado' },
+      { label: 'Não existe protocolos regionais', match: 'Não existe protocolos regionais' }
+    ]
+  },
+  {
+    id: 'protocolos_urgencia_drs',
+    coluna: 'Existem protocolos regionais de priorização clínica para regulação do acesso às urgências/emergência?',
+    titulo: 'Protocolos regionais para urgências/emergência',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, formalizados', match: 'Sim, formalizados' },
+      { label: 'Sim, porém não formalizado', match: 'Sim, porém não formalizado' },
+      { label: 'Não existe protocolos regionais', match: 'Não existe protocolos regionais' }
+    ]
+  },
+  {
+    id: 'criterios_baseados_drs',
+    coluna: 'Os critérios de priorização utilizados na região são baseados em?',
+    titulo: 'Critérios de priorização baseados em',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Protocolos Estaduais', match: 'Protocolos Estaduais' },
+      { label: 'Protocolos Regionais', match: 'Protocolos Regionais' },
+      { label: 'Protocolos Municipais', match: 'Protocolos Municipais' },
+      { label: 'Critério clínico definido pelo especialista regulador', match: 'Critério clínico definido pelo especialista regulador' },
+      { label: 'Ordem cronológica da fila', match: 'Ordem cronológica da fila' },
+      { label: 'Outro', match: 'outro' }
+    ]
+  },
+  {
+    id: 'criterios_homogeneos_drs',
+    coluna: 'Os critérios de priorização são usados de forma homogênea pelos municípios?',
+    titulo: 'Critérios usados de forma homogênea pelos municípios',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'drs_participa_protocolos',
+    coluna: 'O DRS participa da construção de protocolos clínicos?',
+    titulo: 'DRS participa da construção de protocolos',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' },
+      { label: 'Parcialmente', match: 'Parcialmente' }
+    ]
+  },
+  {
+    id: 'drs_monitora_priorizacao',
+    coluna: 'O DRS monitora a aplicação dos critérios de priorização pelos municípios?',
+    titulo: 'DRS monitora aplicação dos critérios',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, de forma sistêmica', match: 'Sim, de forma sistêmica' },
+      { label: 'Sim, eventualmente', match: 'Sim, eventualmente' },
+      { label: 'Não realiza monitoramento', match: 'Não realiza monitoramento' }
+    ]
+  },
+  {
+    id: 'mecanismos_revisao_drs',
+    coluna: 'Existem mecanismos de revisão ou auditoria das decisões de priorização clínica?',
+    titulo: 'Mecanismos de revisão/auditoria',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, formalizados', match: 'Sim, formalizados' },
+      { label: 'Sim, porém não formalizado', match: 'Sim, porém não formalizado' },
+      { label: 'Não existem', match: 'Não existem' }
+    ]
+  }
+];
+
+// Definição das perguntas do Bloco - Governança (DRS)
+const PERGUNTAS_BLOCO_GOVERNANCA_DRS = [
+  {
+    id: 'pauta_cir',
+    coluna: 'A regulação do acesso é pauta regular nas reuniões da CIR?',
+    titulo: 'Regulação é pauta regular na CIR',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, frequentemente', match: 'Sim, frequentemente' },
+      { label: 'Sim, ocasionalmente', match: 'Sim, ocasionalmente' },
+      { label: 'Raramente', match: 'Raramente' },
+      { label: 'Nunca', match: 'Nunca' }
+    ]
+  },
+  {
+    id: 'conflitos_acesso',
+    coluna: 'Como são tratados conflitos ou disputas de acesso entre os municípios?',
+    titulo: 'Tratamento de conflitos de acesso',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Pactuação na CIR', match: 'Pactuação na CIR' },
+      { label: 'Mediações pelo DRS', match: 'Mediações pelo DRS' },
+      { label: 'Decisão da SES', match: 'Decisão da SES' },
+      { label: 'Negociação direta entre municípios', match: 'Negociação direta entre os municípios' },
+      { label: 'Não existe mecanismo formal', match: 'Não existe mecanismo formal' },
+      { label: 'Pautado no CEGRAS', match: 'Pautado no CEGRAS' }
+    ]
+  },
+  {
+    id: 'monitora_indicadores',
+    coluna: 'O DRS monitora indicadores de regulação do acesso?',
+    titulo: 'DRS monitora indicadores de regulação',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'dados_planejamento',
+    coluna: 'Os dados de regulação do acesso são utilizados no planejamento regional?',
+    titulo: 'Dados utilizados no planejamento regional',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Regularmente', match: 'Regularmente' },
+      { label: 'Ocasionalmente', match: 'Ocasionalmente' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'grau_organizacao',
+    coluna: 'Como a diretoria regional avalia o grau de organização da regulação do acesso na região?',
+    titulo: 'Grau de organização da regulação',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Estruturada e consolidada regionalmente', match: 'Estruturada e consolidada regionalmente' },
+      { label: 'Estruturada, com desafios de implementação', match: 'Estruturada, porém com desafios de implementação' },
+      { label: 'Parcialmente estruturada', match: 'Parcialmente estruturada' },
+      { label: 'Em fase de organização', match: 'Em fase de organização' },
+      { label: 'Não estruturada', match: 'Não estruturada' }
+    ]
+  },
+  {
+    id: 'deliberacoes_cegras',
+    coluna: 'As deliberações do Comitê Executivo de Governança da Rede de Atenção à Saúde resultam em mudanças na organização da assistência ou na regulação regional?',
+    titulo: 'Deliberações do CEGRAS resultam em mudanças',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, mudanças estruturais', match: 'Sim, resultam em mudanças estruturais na organização da rede e nos fluxos assistenciais regionais' },
+      { label: 'Sim, ajustes pontuais', match: 'Sim, resultam em ajustes  pontuais nos fluxos ou pactuações regionais' },
+      { label: 'Houve discussões, sem mudanças concretas', match: 'Houve discussões, mas sem mudanças concretas na organização da rede' },
+      { label: 'Não houve impacto identificado', match: 'Não houve impacto identificado' },
+      { label: 'Comitê não está instituído', match: 'O comitê não está instituído ou não está funcionando na região' }
+    ]
+  },
+  {
+    id: 'impacto_judiciais',
+    coluna: 'Qual o impacto das demandas judiciais nos processos de regulação do acesso na região?',
+    titulo: 'Impacto das demandas judiciais',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Alto impacto', match: 'Alto impacto (as demandas judiciais frequentemente alteram a ordem de prioridade da regulação assistencial e interferem na gestão das filas e na organização do acesso aos serviços)' },
+      { label: 'Impacto moderado', match: 'Impacto moderado (as demandas judiciais geram ajustes pontuais nos processos de regulação e na priorização do acesso)' },
+      { label: 'Baixo impacto', match: 'Baixo impacto (as demandas judiciais ocorrem, mas raramente interferem na organização da regulação assistencial)' },
+      { label: 'Sem impacto significativo', match: 'Sem impacto significativo (as demandas judiciais não interferem nos processos de regulação assistencial da região)' }
+    ]
+  },
+  {
+    id: 'tratamento_judiciais',
+    coluna: 'Como as demandas judiciais relacionadas ao acesso a serviços de saúde são tratadas no âmbito da regulação do acesso na região?',
+    titulo: 'Tratamento das demandas judiciais',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Fluxo institucional definido', match: 'Existe fluxo institucional definido entre gestão, regulação e setor jurídico para atendimento das demandas judiciais' },
+      { label: 'Tratadas caso a caso', match: 'As demandas judiciais são tratadas caso a caso, com articulação entre áreas técnicas e regulação' },
+      { label: 'Tratadas diretamente pelos serviços', match: 'As demandas judiciais são tratadas diretamente pelos serviços ou municípios, sem articulação regional estruturada' },
+      { label: 'Não há fluxo ou estratégia definida', match: 'Não há fluxo ou estratégia definida para lidar com judicialização na regulação assistencial.' }
+    ]
+  }
+];
+
+// Definição das perguntas do Bloco - Gestão de Oferta (DRS)
+const PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS = [
+  {
+    id: 'mapeamento_oferta_drs',
+    coluna: 'O DRS mantém mapeamento atualizado da oferta de serviços especializados na região?',
+    titulo: 'Mapeamento da oferta de serviços especializados',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, atualizado regularmente', match: 'Sim, atualizado regularmente' },
+      { label: 'Sim, porém desatualizado', match: 'Sim, porém desatualizado' },
+      { label: 'Não possui mapeamento sistematizado', match: 'Não possui mapeamento sistematizado' }
+    ]
+  },
+  {
+    id: 'etapas_gestao_contratos',
+    coluna: 'O DRS atua em quais etapas da gestão de contratos com prestadores de serviços de saúde?',
+    titulo: 'Etapas de gestão de contratos com prestadores',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Não atua', match: 'Não atua' },
+      { label: 'Levantamento de necessidades assistenciais', match: 'Levantamento de necessidades assistenciais da região' },
+      { label: 'Definição de oferta/escopo dos serviços', match: 'Definição de oferta/escopo dos serviços' },
+      { label: 'Definição de metas quantitativas/qualitativas', match: 'Definição de metas quantitativas/qualitativas' },
+      { label: 'Monitoramento da produção', match: 'Monitoramento da produção e cumprimento de metas' },
+      { label: 'Avaliação de desempenho dos prestadores', match: 'Avaliação de desempenho dos prestadores' },
+      { label: 'Proposição de ajustes na oferta/contrato', match: 'Proposição de ajustes na oferta/contrato' },
+      { label: 'Outro', match: 'Outro' }
+    ]
+  },
+  {
+    id: 'organizacao_ofertas',
+    coluna: 'Como são organizados as ofertas de serviços especializados entre os municípios?',
+    titulo: 'Organização das ofertas entre municípios',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Programação pactuada', match: 'Programação pactuada' },
+      { label: 'Gestão Estadual direta', match: 'Gestão Estadual direta' },
+      { label: 'Definição pelos prestadores', match: 'Definição pelos prestadores' },
+      { label: 'Não existe distribuição formal', match: 'Não existe distribuição formal' }
+    ]
+  },
+  {
+    id: 'monitora_tempos_espera',
+    coluna: 'O DRS monitora tempos de espera para consultas, exames e procedimentos regulados?',
+    titulo: 'Monitoramento de tempos de espera',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, sistematicamente', match: 'Sim, sistematicamente' },
+      { label: 'Sim, de forma parcial', match: 'Sim, de forma parcial' },
+      { label: 'Não realiza monitoramento', match: 'Não realiza monitoramento' }
+    ]
+  },
+  {
+    id: 'mecanismo_redistribuicao',
+    coluna: 'Existe mecanismo regional para redistribuição de vagas entre os municípios ?',
+    titulo: 'Mecanismo de redistribuição de vagas',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, formalizados', match: 'Sim, formalizados' },
+      { label: 'Sim, de forma informal', match: 'Sim, de forma informal' },
+      { label: 'Não existem mecanismos', match: 'Não existem mecanismos' }
+    ]
+  },
+  {
+    id: 'monitora_dependencia',
+    coluna: 'O DRS monitora a dependência assistencial da região para acesso a consultas, exames e procedimentos especializados?',
+    titulo: 'Monitoramento da dependência assistencial',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'analise_dependencia',
+    coluna: 'No monitoramento, como essa dependência é analisada?',
+    titulo: 'Análise da dependência assistencial',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Fluxos dentro da própria RRAS', match: 'Fluxos dentro da própria RRAS (entre municípios/regiões de saúde)' },
+      { label: 'Fluxos para outras RRAS do estado', match: 'Fluxos para outras RRAS do estado' },
+      { label: 'Fluxos para outros DRS (fora da RRAS)', match: 'Fluxos para outros DRS (fora da RRAS)' },
+      { label: 'Não há distinção formal', match: 'Não há distinção formal' },
+      { label: 'Outro', match: 'Outro' }
     ]
   }
 ];
@@ -609,6 +886,545 @@ const PERGUNTAS_BLOCO_PRIORIZACAO = [
   }
 ];
 
+// Definição das perguntas do Bloco - Gestão de Oferta
+const PERGUNTAS_BLOCO_GESTAO_OFERTA = [
+  {
+    id: 'mapeamento_ubs',
+    coluna: 'O município mantém mapeamento atualizado da oferta assistencial nas UBS?',
+    titulo: 'Mapeamento da oferta nas UBS',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, atualizado regularmente', match: 'Sim, atualizado regularmente' },
+      { label: 'Sim, mas desatualizado', match: 'Sim, mas desatualizado' },
+      { label: 'Parcial', match: 'Parcial' },
+      { label: 'Não Possui', match: 'Não Possui' }
+    ]
+  },
+  {
+    id: 'mapeamento_especializado',
+    coluna: 'O município mantém mapeamento atualizado da oferta  das consultas , exames e procedimentos especializados ?',
+    titulo: 'Mapeamento da oferta especializada',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, atualizado regularmente', match: 'Sim, atualizado regularmente' },
+      { label: 'Sim, mas desatualizado', match: 'Sim, mas desatualizado' },
+      { label: 'Parcial', match: 'Parcial' },
+      { label: 'Não Possui', match: 'Não Possui' }
+    ]
+  },
+  {
+    id: 'mapeamento_leitos',
+    coluna: 'O município mantém mapeamento da oferta de leitos  da atenção hospitalar?',
+    titulo: 'Mapeamento da oferta de leitos',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, atualizado regularmente', match: 'Sim, atualizado regularmente' },
+      { label: 'Sim, mas desatualizado', match: 'Sim, mas desatualizado' },
+      { label: 'Parcial', match: 'Parcial' },
+      { label: 'Não Possui', match: 'Não Possui' }
+    ]
+  },
+  {
+    id: 'agendas_atualizadas',
+    coluna: 'As agendas e ofertas estão atualizadas no sistema de vagas ambulatoriais especializadas?',
+    titulo: 'Agendas atualizadas no sistema',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'criterio_agendamento_go',
+    titulo: 'Critério para local de agendamento',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Qual o principal critério para definir o local de agendamento? (choice=Proximidade geográfica)', label: 'Proximidade geográfica' },
+      { coluna: 'Qual o principal critério para definir o local de agendamento? (choice=Disponibilidade de vaga)', label: 'Disponibilidade de vaga' },
+      { coluna: 'Qual o principal critério para definir o local de agendamento? (choice=Pactuação regional)', label: 'Pactuação regional' },
+      { coluna: 'Qual o principal critério para definir o local de agendamento? (choice=Complexidade do serviço)', label: 'Complexidade do serviço' },
+      { coluna: 'Qual o principal critério para definir o local de agendamento? (choice=Outro)', label: 'Outro' }
+    ]
+  },
+  {
+    id: 'cnes_atualizado',
+    coluna: 'O município mantém dados do CNES atualizados ?',
+    titulo: 'CNES atualizado',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'drs_atualizado',
+    coluna: 'O município mantem o DRS atualizado sobre as ofertas de serviços?',
+    titulo: 'DRS atualizado sobre ofertas',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'controle_vagas',
+    coluna: 'Quem controla a distribuição das vagas ambulatoriais especializadas?',
+    titulo: 'Controle da distribuição de vagas',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Central Municipal de Regulação', match: 'Central Municipal de Regulação' },
+      { label: 'Central Regional de Regulação', match: 'Central Regional de Regulação' },
+      { label: 'Próprio prestador', match: 'Próprio prestador' },
+      { label: 'Compartilhado', match: 'Compartilhado' },
+      { label: 'Outro', match: 'Outro' }
+    ]
+  },
+  {
+    id: 'agendas_integradas',
+    coluna: 'As agendas dos prestadores estão integradas ao sistema de regulação?',
+    titulo: 'Agendas dos prestadores integradas',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Todas', match: 'Todas' },
+      { label: 'Apenas algumas', match: 'Apenas algumas' },
+      { label: 'Não são integradas', match: 'Não são integradas' }
+    ]
+  },
+  {
+    id: 'remanejamento_vagas',
+    coluna: 'A regulação faz remanejamento de vagas entre serviços ou municípios',
+    titulo: 'Remanejamento de vagas',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' },
+      { label: 'Parcialmente', match: 'Parcialmente' }
+    ]
+  },
+  {
+    id: 'oferta_integrada_rras',
+    coluna: 'A oferta municipal está integrada à grade regional da RRAS?',
+    titulo: 'Oferta integrada à grade RRAS',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'oferta_pactuada',
+    coluna: 'A distribuição da oferta especializada é pactuada regionalmente nas instâncias de governança (CIR / RRAS)?',
+    titulo: 'Oferta pactuada regionalmente',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' },
+      { label: 'Parcialmente', match: 'Parcialmente' }
+    ]
+  },
+  {
+    id: 'coordena_repatriamento',
+    coluna: 'Quem coordena o repatriamento?',
+    titulo: 'Coordenação do repatriamento',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Central Municipal de Regulação', match: 'Central Municipal de Regulação' },
+      { label: 'DRS', match: 'DRS' },
+      { label: 'CROSS', match: 'CROSS' },
+      { label: 'Serviço de Origem', match: 'Serviço de Origem' },
+      { label: 'Serviço de destino', match: 'Serviço de destino' }
+    ]
+  },
+  {
+    id: 'oferta_atende_demanda',
+    coluna: ' A oferta atual de serviços especializados atende à demanda do município?',
+    titulo: 'Oferta atende à demanda',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' },
+      { label: 'Parcialmente', match: 'Parcialmente' }
+    ]
+  },
+  {
+    id: 'fila_critica',
+    coluna: 'Existem especialidades com fila de espera crítica (mais de 6 meses) no município?',
+    titulo: 'Especialidades com fila crítica (>6 meses)',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'vazios_assistenciais',
+    coluna: 'Existem vazios assistenciais identificados na região?',
+    titulo: 'Vazios assistenciais na região',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'leitos_suficientes',
+    coluna: 'A disponibilizada de leitos hospitalares regulados é suficiente para atender a demanda do município?',
+    titulo: 'Leitos hospitalares suficientes',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'mecanismos_gestao',
+    coluna: 'Quando a produção contratada não é executada, existem mecanismos de gestão?',
+    titulo: 'Mecanismos quando produção não executada',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Remanejamento de vagas', match: 'Remanejamento de vagas' },
+      { label: 'Revisão contratual', match: 'Revisão contratual' },
+      { label: 'Penalidades', match: 'Penalidades' },
+      { label: 'Não existem mecanismos', match: 'Não existem mecanismos' }
+    ]
+  },
+  {
+    id: 'estrategias_ampliacao',
+    titulo: 'Estratégias para ampliação da oferta',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Que estratégias são utilizadas para a ampliação da oferta e redução de filas? (choice=Mutirão)', label: 'Mutirão' },
+      { coluna: 'Que estratégias são utilizadas para a ampliação da oferta e redução de filas? (choice=Ampliação de agenda)', label: 'Ampliação de agenda' },
+      { coluna: 'Que estratégias são utilizadas para a ampliação da oferta e redução de filas? (choice=Compra de serviços)', label: 'Compra de serviços' },
+      { coluna: 'Que estratégias são utilizadas para a ampliação da oferta e redução de filas? (choice=Requalificação da fila de espera)', label: 'Requalificação da fila' },
+      { coluna: 'Que estratégias são utilizadas para a ampliação da oferta e redução de filas? (choice=Outra)', label: 'Outra' },
+      { coluna: 'Que estratégias são utilizadas para a ampliação da oferta e redução de filas? (choice=Não são utilizadas estratégias)', label: 'Não são utilizadas' }
+    ]
+  },
+  {
+    id: 'estrategias_sem_oferta',
+    titulo: 'Estratégias quando não há oferta',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Quando não há oferta disponível  no município/ região, quais estratégias são utilizadas? (choice=Encaminhamento para outra região)', label: 'Encaminhamento para outra região' },
+      { coluna: 'Quando não há oferta disponível  no município/ região, quais estratégias são utilizadas? (choice=Ampliação de agenda)', label: 'Ampliação de agenda' },
+      { coluna: 'Quando não há oferta disponível  no município/ região, quais estratégias são utilizadas? (choice=Compra de serviços)', label: 'Compra de serviços' },
+      { coluna: 'Quando não há oferta disponível  no município/ região, quais estratégias são utilizadas? (choice=Não existe estratégia estruturada)', label: 'Não existe estratégia' }
+    ]
+  },
+  {
+    id: 'monitoramento_prestadores',
+    coluna: 'Existe monitoramento do cumprimento da oferta contratualizada com os prestadores?',
+    titulo: 'Monitoramento de prestadores',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'envio_rnds',
+    coluna: 'O município realiza o envio regular de dados sobre a regulação assistencial para a Rede Nacional de Dados em Saúde (RNDS)?',
+    titulo: 'Envio de dados para RNDS',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, de forma automatizada', match: 'Sim, de forma automatizada' },
+      { label: 'Sim, de forma manual', match: 'Sim, de forma manual' },
+      { label: 'Ambas as formas', match: 'Ambas as formas' },
+      { label: 'Em implantação de forma automatizada', match: 'Em implantação de forma automatizada' },
+      { label: 'Em implantação de forma manual', match: 'Em implantação de forma manual' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'tempo_analise',
+    coluna: 'Qual o tempo médio para análise de uma solicitação?',
+    titulo: 'Tempo médio para análise',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Até 24h', match: 'Até 24h' },
+      { label: '2-3 dias', match: '2- 3 dias' },
+      { label: '4-7 dias', match: '4- 7 dias' },
+      { label: 'Mais de 7 dias', match: 'Mais de 7 dias' }
+    ]
+  },
+  {
+    id: 'apoio_transporte',
+    coluna: 'Quando o atendimento ocorre em outro município, existe apoio ao transporte do paciente?',
+    titulo: 'Apoio ao transporte do paciente',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, transporte sanitário estruturado', match: 'Sim, transporte sanitário estruturado' },
+      { label: 'Sim, parcialmente', match: 'Sim, parcialmente' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'transporte_suficiente',
+    coluna: 'A oferta de transporte é suficiente para atender à demanda regulada?',
+    titulo: 'Transporte suficiente',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'gestao_propria_populacao',
+    coluna: 'O municipio realiza gestão da oferta de serviços de saúde exclusivamente para o atendimento da sua própria população?',
+    titulo: 'Gestão exclusiva para própria população',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  }
+];
+
+// Definição das perguntas do Bloco - Governança
+const PERGUNTAS_BLOCO_GOVERNANCA = [
+  {
+    id: 'area_responsavel',
+    coluna: 'Qual a área da Secretaria Municipal de Saúde é responsável pela regulação do acesso?',
+    titulo: 'Área responsável pela regulação',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'APS', match: 'APS' },
+      { label: 'AAE', match: 'AAE' },
+      { label: 'Planejamento', match: 'Planejamento' },
+      { label: 'Gabinete', match: 'Gabinete' },
+      { label: 'Central de Regulação', match: 'Central de Regulação' },
+      { label: 'Outra', match: 'Outra' }
+    ]
+  },
+  {
+    id: 'prioridade_estrategica',
+    coluna: ' A regulação do acesso é considerada prioridade estratégica na gestão municipal ?',
+    titulo: 'Regulação é prioridade estratégica',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'papel_drs_gov',
+    coluna: 'Como o município reconhece o papel do DRS na regulação do acesso na região?',
+    titulo: 'Papel do DRS na regulação',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Coordenador Regional da Regulação', match: 'Coordenador Regional da Regulação' },
+      { label: 'Apoio técnico aos municípios', match: 'Apoio técnico aos municípios' },
+      { label: 'Monitoramento das filas', match: 'Monitoramento das filas' },
+      { label: 'Articulação entre os prestadores', match: 'Articulação entre os prestadores' },
+      { label: 'Papel pouco definido', match: 'Papel pouco definido' },
+      { label: 'Outro', match: 'Outro' }
+    ]
+  },
+  {
+    id: 'papel_cegras',
+    coluna: 'Como o município reconhece o papel do CEGRAS (Comitê Executivo de Governança da Rede) na regulação do acesso?',
+    titulo: 'Papel do CEGRAS na regulação',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Orienta definição de fluxos e pactuações', match: 'Orienta diretamente a definição de fluxos, protocolos e pactuações assistenciais' },
+      { label: 'Contribui parcialmente', match: 'Contribui parcialmente para discussões e pactuações regionais' },
+      { label: 'Espaço de discussão sem impacto', match: 'Contribui apenas como espaço de discussão, sem im@pacto direto na regulação municipal' },
+      { label: 'Não contribui', match: 'Não contribui para a regulação assistencial do município' },
+      { label: 'Município não participa', match: 'O município não participa do Comitê' }
+    ]
+  },
+  {
+    id: 'relacao_regulacao',
+    coluna: 'Como ocorre a relação entre a regulação municipal e a regulação regional/ estadual?',
+    titulo: 'Relação com regulação regional/estadual',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Totalmente integrada ao CROSS', match: 'Totalmente integrada ao CROSS' },
+      { label: 'Parcialmente integrada', match: 'Parcialmente integrada' },
+      { label: 'Predominantemente Municipal', match: 'Predominantemente Municipal' },
+      { label: 'Não há integração estruturada', match: 'Não há integração estruturada' }
+    ]
+  },
+  {
+    id: 'definicao_criterios',
+    coluna: 'Os critérios de acesso e priorização clínica são definições de qual forma?',
+    titulo: 'Definição dos critérios de acesso',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Exclusivamente municipal', match: 'Exclusivamente municipal' },
+      { label: 'Regional (CIR)', match: 'Regional (CIR)' },
+      { label: 'Estadual', match: 'Estadual' },
+      { label: 'Mista (Municipal+Regional+estadual)', match: 'Mista (Municipal+ Regional+ estadual)' }
+    ]
+  },
+  {
+    id: 'prestadores_participam',
+    coluna: 'Os prestadores de serviços participam da definição de fluxos ou critérios de acesso?',
+    titulo: 'Prestadores participam da definição',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'acordos_informais',
+    coluna: 'Existem acordos informais entre os municípios e serviços?',
+    titulo: 'Acordos informais entre municípios',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'fluxos_pactuados_gov',
+    coluna: 'Os fluxos regionais são pactuados nas instâncias de governança (CIR / DRS)?',
+    titulo: 'Fluxos pactuados nas instâncias',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sempre', match: 'Sempre' },
+      { label: 'Na maioria das vezes', match: 'Na maioria das vezes' },
+      { label: 'Raramente', match: 'Raramente' }
+    ]
+  },
+  {
+    id: 'decisoes_problemas',
+    coluna: 'Na prática, quando há problemas de acesso a serviços especializados, onde as decisões são tomadas?',
+    titulo: 'Onde decisões são tomadas',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'No município', match: 'No município' },
+      { label: 'Na CIR', match: 'Na CIR' },
+      { label: 'No DRS', match: 'No DRS' },
+      { label: 'No nível estadual', match: 'No nível estadual' },
+      { label: 'De forma compartilhada', match: 'De forma compartilhada' }
+    ]
+  },
+  {
+    id: 'paineis_analiticos',
+    coluna: 'O município utiliza painéis analíticos para monitorar a regulação?',
+    titulo: 'Painéis analíticos para monitorar',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'analise_filas',
+    coluna: 'A análise dos dados das filas de espera da regulação orienta decisões e pactuações?',
+    titulo: 'Análise de filas orienta decisões',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'relatorios_filas',
+    coluna: 'O sistema de regulação disponibiliza relatórios ou painéis para monitoramento das filas de espera',
+    titulo: 'Relatórios para monitoramento de filas',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, de forma estruturada', match: 'Sim, de forma estruturada' },
+      { label: 'Sim, de forma parcial', match: 'Sim, de forma parcial' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'comunicacao_cidadao',
+    coluna: 'O sistema de regulação possui funcionalidades de comunicação direta com o cidadão (ex.: confirmação de consulta)?',
+    titulo: 'Comunicação direta com cidadão',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, de forma estruturada', match: 'Sim, de forma estruturada' },
+      { label: 'Sim, de forma parcial', match: 'Sim, de forma parcial' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'como_informado',
+    coluna: 'Como o cidadão é informado quando a consulta ou exame é agendado?',
+    titulo: 'Como cidadão é informado',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Telefone, Email, SMS, Whatsapp', match: 'Telefone, Email, SMS, Whatsapp' },
+      { label: 'Avisado pela equipe de saúde', match: 'Avisado pela equipe de saúde' },
+      { label: 'Precisa buscar informação na unidade', match: 'Precisa buscar por conta própria a informação na unidade' },
+      { label: 'Outro', match: 'Outro' }
+    ]
+  },
+  {
+    id: 'confirmacao_previa',
+    coluna: 'Existe confirmação prévia com o cidadão antes da data da consulta ou exame?',
+    titulo: 'Confirmação prévia com cidadão',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, sempre', match: 'Sim, sempre' },
+      { label: 'Sim em alguns serviços', match: 'Sim em alguns serviços' },
+      { label: 'Não existe confirmação prévia', match: 'Não existe confirmação prévia' }
+    ]
+  },
+  {
+    id: 'consulta_posicao_fila',
+    coluna: 'O cidadão consegue consultar sua posição na fila de espera?',
+    titulo: 'Cidadão consulta posição na fila',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim diretamente no sistema ou aplicativo', match: 'Sim diretamente no sistema ou aplicativo' },
+      { label: 'Sim por meio da unidade de saúde', match: 'Sim por meio da unidade de saúde' },
+      { label: 'Não existe mecanismo para isso', match: 'Não existe mecanismo para isso' }
+    ]
+  },
+  {
+    id: 'canais_cancelamento',
+    coluna: 'O cidadão possui canais para solicitar cancelamento ou reagendamento de consultas e exames regulados?',
+    titulo: 'Canais para cancelamento/reagendamento',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, por meio da unidade de saúde', match: 'Sim, por meio da unidade de saúde' },
+      { label: 'Sim diretamente no sistema ou aplicativo', match: 'Sim diretamente no sistema ou aplicativo' },
+      { label: 'Não existe canal estruturado', match: 'Não existe canal estruturado' }
+    ]
+  },
+  {
+    id: 'canais_ouvidoria',
+    coluna: 'Existem canais de ouvidoria para que o cidadão registre reclamações ou dúvidas relacionadas à regulação do acesso?',
+    titulo: 'Canais de ouvidoria',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, estruturados e utilizados regularmente', match: 'Sim, estruturados e utilizados regularmente' },
+      { label: 'Sim mas pouco conhecido e pouco utilizado', match: 'Sim mas pouco conhecido e pouco utilizado' },
+      { label: 'Não existem canais estruturados', match: 'Não existem canais estruturados' }
+    ]
+  },
+  {
+    id: 'info_publicas_espera',
+    coluna: 'O município disponibiliza informações públicas sobre tempo de espera para consultas ou exames especializados?',
+    titulo: 'Informações públicas sobre tempo de espera',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, regularmente', match: 'Sim, regularmente' },
+      { label: 'Sim, mas de forma eventual', match: 'Sim, mas de forma eventual' },
+      { label: 'Não disponibiliza', match: 'Não disponibiliza' }
+    ]
+  },
+  {
+    id: 'transparencia_fila',
+    coluna: 'Existe transparência sobre a posição do paciente na fila de espera?',
+    titulo: 'Transparência sobre posição na fila',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim- visível para gestores e unidades', match: 'Sim- visível para gestores e unidades' },
+      { label: 'Sim- visível apenas para central de regulação', match: 'Sim- visivel apenas para central de regulação' },
+      { label: 'Não existe transparência', match: 'Não existe transparência' },
+      { label: 'Depende do serviço', match: 'Depende do serviço' }
+    ]
+  }
+];
+
 // Definição das perguntas do Bloco - Papel do município na RRAS
 const PERGUNTAS_BLOCO_RRAS = [
   {
@@ -876,6 +1692,7 @@ export function Analise() {
   const [loading, setLoading] = useState(true);
   const [selectedRRAS, setSelectedRRAS] = useState<string | null>(null);
   const [selectedDRS, setSelectedDRS] = useState<string | null>(null);
+  const [selectedRegiao, setSelectedRegiao] = useState<string | null>(null);
   const [selectedMunicipio, setSelectedMunicipio] = useState<string | null>(null);
   const [selectedBloco, setSelectedBloco] = useState<string>('rras');
   const [selectedInstituicao, setSelectedInstituicao] = useState<'Municipio' | 'DRS'>('Municipio');
@@ -940,9 +1757,35 @@ export function Analise() {
     ? [...new Set(municipios.filter(m => m.rras === selectedRRAS).map(m => m.drs).filter(Boolean))].sort()
     : drsList;
 
+  // Lista de Regiões de Saúde filtrada por RRAS e DRS
+  const regiaoListFiltrada = useMemo(() => {
+    let filtered = municipios;
+    if (selectedRRAS) filtered = filtered.filter(m => m.rras === selectedRRAS);
+    if (selectedDRS) filtered = filtered.filter(m => m.drs === selectedDRS);
+    return [...new Set(filtered.map(m => m.regiaoSaude).filter(Boolean))].sort();
+  }, [municipios, selectedRRAS, selectedDRS]);
+
+  // Resetar região se não estiver mais na lista filtrada
+  useEffect(() => {
+    if (selectedRegiao && !regiaoListFiltrada.includes(selectedRegiao)) {
+      setSelectedRegiao(null);
+    }
+  }, [regiaoListFiltrada, selectedRegiao]);
+
+  // Resetar município se região mudar e município não pertencer à região
+  useEffect(() => {
+    if (selectedMunicipio && selectedRegiao) {
+      const mun = municipios.find(m => m.nome === selectedMunicipio);
+      if (mun && mun.regiaoSaude !== selectedRegiao) {
+        setSelectedMunicipio(null);
+      }
+    }
+  }, [selectedRegiao, selectedMunicipio, municipios]);
+
   const municipiosFiltrados = municipios.filter(m => {
     if (selectedRRAS && m.rras !== selectedRRAS) return false;
     if (selectedDRS && m.drs !== selectedDRS) return false;
+    if (selectedRegiao && m.regiaoSaude !== selectedRegiao) return false;
     return true;
   });
 
@@ -1346,6 +2189,353 @@ export function Analise() {
     PERGUNTAS_BLOCO_ORDENACAO_DRS[9].opcoes!
   );
 
+  // ========== ANÁLISES DO BLOCO PRIORIZAÇÃO CLÍNICA (DRS) ==========
+  const analiseProtocolosAmbulatorialDRS = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_PRIORIZACAO_DRS[0].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO_DRS[0].opcoes!
+  );
+
+  const analiseProtocolosUrgenciaDRS = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_PRIORIZACAO_DRS[1].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO_DRS[1].opcoes!
+  );
+
+  const analiseCriteriosBaseadosDRS = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_PRIORIZACAO_DRS[2].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO_DRS[2].opcoes!
+  );
+
+  const analiseCriteriosHomogeneosDRS = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_PRIORIZACAO_DRS[3].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO_DRS[3].opcoes!
+  );
+
+  const analiseDRSParticipaProtocolos = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_PRIORIZACAO_DRS[4].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO_DRS[4].opcoes!
+  );
+
+  const analiseDRSMonitoraPriorizacao = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_PRIORIZACAO_DRS[5].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO_DRS[5].opcoes!
+  );
+
+  const analiseMecanismosRevisaoDRS = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_PRIORIZACAO_DRS[6].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO_DRS[6].opcoes!
+  );
+
+  // ========== ANÁLISES DO BLOCO GESTÃO DE OFERTA (DRS) ==========
+  const analiseMapeamentoOfertaDRS = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[0].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[0].opcoes!
+  );
+
+  const analiseEtapasGestaoContratos = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[1].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[1].opcoes!
+  );
+
+  const analiseOrganizacaoOfertas = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[2].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[2].opcoes!
+  );
+
+  const analiseMonitoraTemposEspera = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[3].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[3].opcoes!
+  );
+
+  const analiseMecanismoRedistribuicao = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[4].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[4].opcoes!
+  );
+
+  const analiseMonitoraDependencia = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[5].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[5].opcoes!
+  );
+
+  const analiseAnaliseDependencia = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[6].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[6].opcoes!
+  );
+
+  // ========== ANÁLISES DO BLOCO GOVERNANÇA (DRS) ==========
+  const analisePautaCIR = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[0].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[0].opcoes!
+  );
+
+  const analiseConflitosAcesso = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[1].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[1].opcoes!
+  );
+
+  const analiseMonitoraIndicadores = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[2].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[2].opcoes!
+  );
+
+  const analiseDadosPlanejamento = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[3].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[3].opcoes!
+  );
+
+  const analiseGrauOrganizacao = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[4].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[4].opcoes!
+  );
+
+  const analiseDeliberacoesCEGRAS = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[5].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[5].opcoes!
+  );
+
+  const analiseImpactoJudiciais = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[6].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[6].opcoes!
+  );
+
+  const analiseTratamentoJudiciais = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[7].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[7].opcoes!
+  );
+
+  // ========== ANÁLISES DO BLOCO GOVERNANÇA ==========
+  const analiseAreaResponsavel = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[0].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[0].opcoes!
+  );
+
+  const analisePrioridadeEstrategica = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[1].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[1].opcoes!
+  );
+
+  const analisePapelDRSGov = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[2].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[2].opcoes!
+  );
+
+  const analisePapelCEGRAS = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[3].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[3].opcoes!
+  );
+
+  const analiseRelacaoRegulacao = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[4].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[4].opcoes!
+  );
+
+  const analiseDefinicaoCriterios = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[5].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[5].opcoes!
+  );
+
+  const analisePrestadoresParticipam = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[6].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[6].opcoes!
+  );
+
+  const analiseAcordosInformais = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[7].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[7].opcoes!
+  );
+
+  const analiseFluxosPactuadosGov = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[8].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[8].opcoes!
+  );
+
+  const analiseDecisoesProblemas = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[9].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[9].opcoes!
+  );
+
+  const analisePaineisAnaliticos = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[10].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[10].opcoes!
+  );
+
+  const analiseAnaliseFilas = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[11].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[11].opcoes!
+  );
+
+  const analiseRelatoriosFilas = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[12].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[12].opcoes!
+  );
+
+  const analiseComunicacaoCidadao = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[13].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[13].opcoes!
+  );
+
+  const analiseComoInformado = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[14].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[14].opcoes!
+  );
+
+  const analiseConfirmacaoPrevia = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[15].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[15].opcoes!
+  );
+
+  const analiseConsultaPosicaoFila = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[16].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[16].opcoes!
+  );
+
+  const analiseCanaisCancelamento = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[17].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[17].opcoes!
+  );
+
+  const analiseCanaisOuvidoria = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[18].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[18].opcoes!
+  );
+
+  const analiseInfoPublicasEspera = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[19].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[19].opcoes!
+  );
+
+  const analiseTransparenciaFila = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[20].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[20].opcoes!
+  );
+
+  // ========== ANÁLISES DO BLOCO GESTÃO DE OFERTA ==========
+  const analiseMapeamentoUBS = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[0].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[0].opcoes!
+  );
+
+  const analiseMapeamentoEspecializado = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[1].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[1].opcoes!
+  );
+
+  const analiseMapeamentoLeitos = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[2].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[2].opcoes!
+  );
+
+  const analiseAgendasAtualizadas = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[3].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[3].opcoes!
+  );
+
+  const analiseCriterioAgendamentoGO = analisarCheckbox(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[4].colunas!
+  );
+
+  const analiseCNESAtualizado = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[5].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[5].opcoes!
+  );
+
+  const analiseDRSAtualizado = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[6].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[6].opcoes!
+  );
+
+  const analiseControleVagas = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[7].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[7].opcoes!
+  );
+
+  const analiseAgendasIntegradas = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[8].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[8].opcoes!
+  );
+
+  const analiseRemanejamentoVagas = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[9].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[9].opcoes!
+  );
+
+  const analiseOfertaIntegradaRRAS = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[10].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[10].opcoes!
+  );
+
+  const analiseOfertaPactuada = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[11].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[11].opcoes!
+  );
+
+  const analiseCoordenaRepatriamento = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[12].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[12].opcoes!
+  );
+
+  const analiseOfertaAtendeDemanda = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[13].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[13].opcoes!
+  );
+
+  const analiseFilaCritica = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[14].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[14].opcoes!
+  );
+
+  const analiseVaziosAssistenciais = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[15].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[15].opcoes!
+  );
+
+  const analiseLeitosSuficientes = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[16].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[16].opcoes!
+  );
+
+  const analiseMecanismosGestao = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[17].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[17].opcoes!
+  );
+
+  const analiseEstrategiasAmpliacao = analisarCheckbox(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[18].colunas!
+  );
+
+  const analiseEstrategiasSemOferta = analisarCheckbox(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[19].colunas!
+  );
+
+  const analiseMonitoramentoPrestadores = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[20].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[20].opcoes!
+  );
+
+  const analiseEnvioRNDS = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[21].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[21].opcoes!
+  );
+
+  const analiseTempoAnalise = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[22].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[22].opcoes!
+  );
+
+  const analiseApoioTransporte = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[23].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[23].opcoes!
+  );
+
+  const analiseTransporteSuficiente = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[24].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[24].opcoes!
+  );
+
+  const analiseGestaoPropria = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[25].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[25].opcoes!
+  );
+
   // ========== ANÁLISES DO BLOCO ORDENAÇÃO DA DEMANDA ==========
   const analiseFilaUBS = analisarPergunta(
     PERGUNTAS_BLOCO_ORDENACAO[0].coluna!,
@@ -1722,6 +2912,7 @@ export function Analise() {
               onChange={(e) => {
                 setSelectedRRAS(e.target.value || null);
                 setSelectedDRS(null);
+                setSelectedRegiao(null);
                 setSelectedMunicipio(null);
               }}
               className="px-2 py-1 border border-slate-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
@@ -1736,6 +2927,7 @@ export function Analise() {
             value={selectedDRS || ''}
             onChange={(e) => {
               setSelectedDRS(e.target.value || null);
+              setSelectedRegiao(null);
               setSelectedMunicipio(null);
             }}
             className="px-2 py-1 border border-slate-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
@@ -1743,6 +2935,19 @@ export function Analise() {
             <option value="">Todas DRS</option>
             {drsListFiltrada.map(drs => (
               <option key={drs} value={drs}>{drs}</option>
+            ))}
+          </select>
+          <select
+            value={selectedRegiao || ''}
+            onChange={(e) => {
+              setSelectedRegiao(e.target.value || null);
+              setSelectedMunicipio(null);
+            }}
+            className="px-2 py-1 border border-slate-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <option value="">Todas Regiões de Saúde</option>
+            {regiaoListFiltrada.map((regiao: string) => (
+              <option key={regiao} value={regiao}>{regiao}</option>
             ))}
           </select>
           <select
@@ -2117,6 +3322,277 @@ export function Analise() {
         </motion.div>
       )}
 
+      {/* Bloco - Governança */}
+      {selectedBloco === 'governanca' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Network className="w-5 h-5 text-indigo-600" />
+            <h2 className="font-semibold text-slate-800">Governança</h2>
+            <span className="text-xs text-slate-400 ml-auto">{totalMunicipios} municípios</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <PerguntaCompacta 
+              titulo="Área responsável pela regulação"
+              dados={analiseAreaResponsavel}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Regulação é prioridade estratégica"
+              dados={analisePrioridadeEstrategica}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Papel do DRS na regulação"
+              dados={analisePapelDRSGov}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Papel do CEGRAS na regulação"
+              dados={analisePapelCEGRAS}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="Relação com regulação regional/estadual"
+              dados={analiseRelacaoRegulacao}
+              corIndex={4}
+            />
+            <PerguntaCompacta 
+              titulo="Definição dos critérios de acesso"
+              dados={analiseDefinicaoCriterios}
+              corIndex={5}
+            />
+            <PerguntaCompacta 
+              titulo="Prestadores participam da definição"
+              dados={analisePrestadoresParticipam}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Acordos informais entre municípios"
+              dados={analiseAcordosInformais}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Fluxos pactuados nas instâncias"
+              dados={analiseFluxosPactuadosGov}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Onde decisões são tomadas"
+              dados={analiseDecisoesProblemas}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="Painéis analíticos para monitorar"
+              dados={analisePaineisAnaliticos}
+              corIndex={4}
+            />
+            <PerguntaCompacta 
+              titulo="Análise de filas orienta decisões"
+              dados={analiseAnaliseFilas}
+              corIndex={5}
+            />
+            <PerguntaCompacta 
+              titulo="Relatórios para monitoramento de filas"
+              dados={analiseRelatoriosFilas}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Comunicação direta com cidadão"
+              dados={analiseComunicacaoCidadao}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Como cidadão é informado"
+              dados={analiseComoInformado}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Confirmação prévia com cidadão"
+              dados={analiseConfirmacaoPrevia}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="Cidadão consulta posição na fila"
+              dados={analiseConsultaPosicaoFila}
+              corIndex={4}
+            />
+            <PerguntaCompacta 
+              titulo="Canais para cancelamento/reagendamento"
+              dados={analiseCanaisCancelamento}
+              corIndex={5}
+            />
+            <PerguntaCompacta 
+              titulo="Canais de ouvidoria"
+              dados={analiseCanaisOuvidoria}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Informações públicas sobre tempo de espera"
+              dados={analiseInfoPublicasEspera}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Transparência sobre posição na fila"
+              dados={analiseTransparenciaFila}
+              corIndex={2}
+            />
+          </div>
+        </motion.div>
+      )}
+
+      {/* Bloco - Gestão de Oferta */}
+      {selectedBloco === 'gestao_oferta' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Network className="w-5 h-5 text-amber-600" />
+            <h2 className="font-semibold text-slate-800">Gestão de Oferta</h2>
+            <span className="text-xs text-slate-400 ml-auto">{totalMunicipios} municípios</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <PerguntaCompacta 
+              titulo="Mapeamento da oferta nas UBS"
+              dados={analiseMapeamentoUBS}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Mapeamento da oferta especializada"
+              dados={analiseMapeamentoEspecializado}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Mapeamento da oferta de leitos"
+              dados={analiseMapeamentoLeitos}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Agendas atualizadas no sistema"
+              dados={analiseAgendasAtualizadas}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="Critério para local de agendamento"
+              dados={analiseCriterioAgendamentoGO}
+              corIndex={4}
+            />
+            <PerguntaCompacta 
+              titulo="CNES atualizado"
+              dados={analiseCNESAtualizado}
+              corIndex={5}
+            />
+            <PerguntaCompacta 
+              titulo="DRS atualizado sobre ofertas"
+              dados={analiseDRSAtualizado}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Controle da distribuição de vagas"
+              dados={analiseControleVagas}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Agendas dos prestadores integradas"
+              dados={analiseAgendasIntegradas}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Remanejamento de vagas"
+              dados={analiseRemanejamentoVagas}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="Oferta integrada à grade RRAS"
+              dados={analiseOfertaIntegradaRRAS}
+              corIndex={4}
+            />
+            <PerguntaCompacta 
+              titulo="Oferta pactuada regionalmente"
+              dados={analiseOfertaPactuada}
+              corIndex={5}
+            />
+            <PerguntaCompacta 
+              titulo="Coordenação do repatriamento"
+              dados={analiseCoordenaRepatriamento}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Oferta atende à demanda"
+              dados={analiseOfertaAtendeDemanda}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Especialidades com fila crítica (>6 meses)"
+              dados={analiseFilaCritica}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Vazios assistenciais na região"
+              dados={analiseVaziosAssistenciais}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="Leitos hospitalares suficientes"
+              dados={analiseLeitosSuficientes}
+              corIndex={4}
+            />
+            <PerguntaCompacta 
+              titulo="Mecanismos quando produção não executada"
+              dados={analiseMecanismosGestao}
+              corIndex={5}
+            />
+            <PerguntaCompacta 
+              titulo="Estratégias para ampliação da oferta"
+              dados={analiseEstrategiasAmpliacao}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Estratégias quando não há oferta"
+              dados={analiseEstrategiasSemOferta}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Monitoramento de prestadores"
+              dados={analiseMonitoramentoPrestadores}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Envio de dados para RNDS"
+              dados={analiseEnvioRNDS}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="Tempo médio para análise"
+              dados={analiseTempoAnalise}
+              corIndex={4}
+            />
+            <PerguntaCompacta 
+              titulo="Apoio ao transporte do paciente"
+              dados={analiseApoioTransporte}
+              corIndex={5}
+            />
+            <PerguntaCompacta 
+              titulo="Transporte suficiente"
+              dados={analiseTransporteSuficiente}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Gestão exclusiva para própria população"
+              dados={analiseGestaoPropria}
+              corIndex={1}
+            />
+          </div>
+        </motion.div>
+      )}
+
       {/* Bloco - Estrutura e Sistemas do DRS */}
       {selectedBloco === 'estrutura_drs' && (
         <motion.div
@@ -2213,6 +3689,170 @@ export function Analise() {
               titulo="Papel do DRS na dificuldade hospitalar"
               dados={analisePapelDRSHospitalar}
               corIndex={3}
+            />
+          </div>
+        </motion.div>
+      )}
+
+      {/* Bloco - Priorização Clínica (DRS) */}
+      {selectedBloco === 'priorizacao_drs' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Network className="w-5 h-5 text-rose-600" />
+            <h2 className="font-semibold text-slate-800">Priorização Clínica (DRS)</h2>
+            <span className="text-xs text-slate-400 ml-auto">{totalDRS} DRS</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <PerguntaCompacta 
+              titulo="Protocolos regionais ambulatorial/hospitalar eletiva"
+              dados={analiseProtocolosAmbulatorialDRS}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Protocolos regionais urgências/emergência"
+              dados={analiseProtocolosUrgenciaDRS}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Critérios de priorização baseados em"
+              dados={analiseCriteriosBaseadosDRS}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Critérios usados de forma homogênea"
+              dados={analiseCriteriosHomogeneosDRS}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="DRS participa da construção de protocolos"
+              dados={analiseDRSParticipaProtocolos}
+              corIndex={4}
+            />
+            <PerguntaCompacta 
+              titulo="DRS monitora aplicação dos critérios"
+              dados={analiseDRSMonitoraPriorizacao}
+              corIndex={5}
+            />
+            <PerguntaCompacta 
+              titulo="Mecanismos de revisão/auditoria"
+              dados={analiseMecanismosRevisaoDRS}
+              corIndex={0}
+            />
+          </div>
+        </motion.div>
+      )}
+
+      {/* Bloco - Gestão de Oferta (DRS) */}
+      {selectedBloco === 'gestao_oferta_drs' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Network className="w-5 h-5 text-amber-600" />
+            <h2 className="font-semibold text-slate-800">Gestão de Oferta (DRS)</h2>
+            <span className="text-xs text-slate-400 ml-auto">{totalDRS} DRS</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <PerguntaCompacta 
+              titulo="Mapeamento da oferta de serviços"
+              dados={analiseMapeamentoOfertaDRS}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Etapas de gestão de contratos"
+              dados={analiseEtapasGestaoContratos}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="Organização das ofertas entre municípios"
+              dados={analiseOrganizacaoOfertas}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Monitoramento de tempos de espera"
+              dados={analiseMonitoraTemposEspera}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="Mecanismo de redistribuição de vagas"
+              dados={analiseMecanismoRedistribuicao}
+              corIndex={4}
+            />
+            <PerguntaCompacta 
+              titulo="Monitoramento da dependência assistencial"
+              dados={analiseMonitoraDependencia}
+              corIndex={5}
+            />
+            <PerguntaCompacta 
+              titulo="Análise da dependência assistencial"
+              dados={analiseAnaliseDependencia}
+              corIndex={0}
+            />
+          </div>
+        </motion.div>
+      )}
+
+      {/* Bloco - Governança (DRS) */}
+      {selectedBloco === 'governanca_drs' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Network className="w-5 h-5 text-indigo-600" />
+            <h2 className="font-semibold text-slate-800">Governança (DRS)</h2>
+            <span className="text-xs text-slate-400 ml-auto">{totalDRS} DRS</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <PerguntaCompacta 
+              titulo="Regulação é pauta regular na CIR"
+              dados={analisePautaCIR}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Tratamento de conflitos de acesso"
+              dados={analiseConflitosAcesso}
+              corIndex={1}
+            />
+            <PerguntaCompacta 
+              titulo="DRS monitora indicadores de regulação"
+              dados={analiseMonitoraIndicadores}
+              corIndex={2}
+            />
+            <PerguntaCompacta 
+              titulo="Dados utilizados no planejamento regional"
+              dados={analiseDadosPlanejamento}
+              corIndex={3}
+            />
+            <PerguntaCompacta 
+              titulo="Grau de organização da regulação"
+              dados={analiseGrauOrganizacao}
+              corIndex={4}
+            />
+            <PerguntaCompacta 
+              titulo="Deliberações do CEGRAS resultam em mudanças"
+              dados={analiseDeliberacoesCEGRAS}
+              corIndex={5}
+            />
+            <PerguntaCompacta 
+              titulo="Impacto das demandas judiciais"
+              dados={analiseImpactoJudiciais}
+              corIndex={0}
+            />
+            <PerguntaCompacta 
+              titulo="Tratamento das demandas judiciais"
+              dados={analiseTratamentoJudiciais}
+              corIndex={1}
             />
           </div>
         </motion.div>

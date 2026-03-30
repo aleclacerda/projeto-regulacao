@@ -2,7 +2,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users,
-  BarChart3
+  BarChart3,
+  Database
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -27,6 +28,12 @@ const menuItems = [
     icon: BarChart3, 
     path: '/analise',
     description: 'Respostas'
+  },
+  { 
+    label: 'Base de Dados', 
+    icon: Database, 
+    path: '/base-dados',
+    description: 'Visualização'
   },
 ];
 
