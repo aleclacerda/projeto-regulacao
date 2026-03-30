@@ -67,6 +67,7 @@ const PERGUNTAS_BLOCO_ORDENACAO_DRS = [
       { coluna: 'Existem espaços formais de governança da regulação do acesso na região ? (choice=Grupo Regional de regulação)', label: 'Grupo Regional de regulação' },
       { coluna: 'Existem espaços formais de governança da regulação do acesso na região ? (choice=Comitê Regional de Acesso)', label: 'Comitê Regional de Acesso' },
       { coluna: 'Existem espaços formais de governança da regulação do acesso na região ? (choice=Não existem espaços específicos)', label: 'Não existem espaços específicos' },
+      { coluna: 'Existem espaços formais de governança da regulação do acesso na região ? (choice=CEGRAS)', label: 'CEGRAS' },
       { coluna: 'Existem espaços formais de governança da regulação do acesso na região ? (choice=Outros)', label: 'Outros' }
     ]
   },
