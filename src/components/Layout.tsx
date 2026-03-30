@@ -117,7 +117,7 @@ export function Layout({ children }: LayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen min-w-0 overflow-hidden">
         {/* Top Header */}
         <header className="bg-white border-b border-slate-200 px-6 py-4">
           <div className="flex items-center justify-between">
@@ -150,7 +150,7 @@ export function Layout({ children }: LayoutProps) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-6 overflow-auto min-w-0">
           {children}
         </main>
       </div>

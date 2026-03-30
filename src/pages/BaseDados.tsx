@@ -107,12 +107,12 @@ export default function BaseDados() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full overflow-hidden">
       {/* Tabela Principal */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-w-0"
+        className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden w-full"
       >
         <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
           <div className="flex items-center gap-3 mb-3">
