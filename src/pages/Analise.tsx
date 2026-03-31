@@ -2075,17 +2075,25 @@ export function Analise() {
   );
 
   // ========== ANÁLISES PARA DRS ==========
+  // Filtrar dados de DRS únicos (apenas primeira resposta de cada DRS)
+  const dadosDRSUnicos = (() => {
+    const drsVistas = new Set<string>();
+    return dadosBrutosFiltrados.filter(row => {
+      if (row['Instituição do respondente'] !== 'DRS') return false;
+      const drsNome = row['Selecione a DRS a qual você pertence:'];
+      if (!drsNome || drsVistas.has(drsNome)) return false;
+      drsVistas.add(drsNome);
+      return true;
+    });
+  })();
+
   // Função para analisar pergunta de DRS (seleção única)
   const analisarPerguntaDRS = (coluna: string, opcoes: {label: string, match: string}[]): ResultadoAnalise[] => {
     const contagem: Record<string, number> = {};
     let naoRespondido = 0;
-    let totalDRSAnalisados = 0;
+    const totalDRSAnalisados = dadosDRSUnicos.length;
     
-    dadosBrutosFiltrados.forEach(row => {
-      const instituicao = row['Instituição do respondente'];
-      if (instituicao !== 'DRS') return;
-      
-      totalDRSAnalisados++;
+    dadosDRSUnicos.forEach(row => {
       const valor = row[coluna];
       
       if (valor && valor.trim()) {
@@ -2112,16 +2120,13 @@ export function Analise() {
     return resultado;
   };
 
-  // Função para analisar checkbox de DRS
+  // Função para analisar checkbox de DRS (usa dadosDRSUnicos)
   const analisarCheckboxDRS = (colunas: {coluna: string, label: string}[]): ResultadoAnalise[] => {
-    const dadosDRS = dadosBrutosFiltrados.filter(row => 
-      row['Instituição do respondente'] === 'DRS'
-    );
-    const totalDRSAnalisados = dadosDRS.length;
+    const totalDRSAnalisados = dadosDRSUnicos.length;
     
     return colunas.map(({ coluna, label }) => {
       let quantidade = 0;
-      dadosDRS.forEach(row => {
+      dadosDRSUnicos.forEach(row => {
         if (row[coluna] === 'Checked') quantidade++;
       });
       const percentual = totalDRSAnalisados > 0 ? (quantidade / totalDRSAnalisados) * 100 : 0;
