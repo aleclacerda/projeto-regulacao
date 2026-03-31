@@ -1865,9 +1865,13 @@ export function Analise() {
   const totalMunicipios = dadosBrutosFiltrados.filter(row => 
     row['Instituição do respondente'] === 'Municipio'
   ).length;
-  const totalDRS = dadosBrutosFiltrados.filter(row => 
-    row['Instituição do respondente'] === 'DRS'
-  ).length;
+  // Contar DRS únicas (sem duplicatas)
+  const totalDRS = new Set(
+    dadosBrutosFiltrados
+      .filter(row => row['Instituição do respondente'] === 'DRS')
+      .map(row => row['Selecione a DRS a qual você pertence:'])
+      .filter(Boolean)
+  ).size;
 
   // Função para analisar pergunta de seleção única (apenas municípios)
   const analisarPergunta = (coluna: string, opcoes: {label: string, match: string}[]): ResultadoAnalise[] => {
