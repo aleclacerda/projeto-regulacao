@@ -130,9 +130,9 @@ export async function loadRespostas(): Promise<Resposta[]> {
         const respostas: Resposta[] = [];
         const headers = results.meta.fields || [];
         
-        // Colunas de regiões de saúde/municípios: índices 11 a 86
-        // Termina antes de "Identifique as populações vulneráveis" (índice 87)
-        const allColumns = headers.slice(11, 87); // Começa em 11 (DRS XV), termina em 86 (Sul - Barretos)
+        // Colunas de regiões de saúde/municípios: índices 11 a 89
+        // Termina antes de "Identifique as populações vulneráveis" (índice 90)
+        const allColumns = headers.slice(11, 90); // Começa em 11 (DRS VII - Campinas), termina em 89 (Sul - Barretos)
         const regiaoSaudeColumns = allColumns.filter(col => isRegiaoSaudeColumn(col));
         
         for (const row of results.data as Record<string, string>[]) {
