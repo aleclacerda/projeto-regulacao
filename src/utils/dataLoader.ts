@@ -304,19 +304,23 @@ export function getMunicipiosRespondidos(respostas: Resposta[], municipiosBase?:
 }
 
 // Detecta municípios que responderam mais de uma vez (duplicados)
-// Não considera duplicado quando um é de Município e outro é de DRS
+// Considera duplicado apenas quando há múltiplas respostas da MESMA instituição
+// Ex: 3 respostas de Município + 1 de DRS = 3 duplicados municipais (DRS não conta)
 export function getMunicipiosDuplicados(respostas: Resposta[]): MunicipioDuplicado[] {
-  const municipioRespostas = new Map<string, { recordId: string; timestamp: string; nomeRespondente: string; instituicao: string; email: string; cargo: string }[]>();
+  // Agrupar respostas por município E por instituição
+  const municipioInstituicaoRespostas = new Map<string, { recordId: string; timestamp: string; nomeRespondente: string; instituicao: string; email: string; cargo: string }[]>();
   
-  // Agrupar respostas por município (apenas completas)
+  // Agrupar respostas por município+instituição (apenas completas)
   for (const resposta of respostas) {
     if (resposta.complete) {
       for (const municipio of resposta.municipiosRespondidos) {
         const normalizado = normalizeNome(municipio);
-        if (!municipioRespostas.has(normalizado)) {
-          municipioRespostas.set(normalizado, []);
+        // Chave única: município + instituição
+        const chave = `${normalizado}|${resposta.instituicao}`;
+        if (!municipioInstituicaoRespostas.has(chave)) {
+          municipioInstituicaoRespostas.set(chave, []);
         }
-        municipioRespostas.get(normalizado)!.push({
+        municipioInstituicaoRespostas.get(chave)!.push({
           recordId: resposta.recordId,
           timestamp: resposta.timestamp,
           nomeRespondente: resposta.nomeRespondente,
@@ -328,42 +332,37 @@ export function getMunicipiosDuplicados(respostas: Resposta[]): MunicipioDuplica
     }
   }
   
+  const parseDate = (ts: string) => {
+    if (!ts) return new Date(0);
+    // Formato: "3/24/2026 14:13" ou similar
+    const parts = ts.split(' ');
+    if (parts.length < 2) return new Date(0);
+    const dateParts = parts[0].split('/');
+    const timeParts = parts[1].split(':');
+    if (dateParts.length < 3) return new Date(0);
+    return new Date(
+      parseInt(dateParts[2]), // ano
+      parseInt(dateParts[0]) - 1, // mês (0-indexed)
+      parseInt(dateParts[1]), // dia
+      parseInt(timeParts[0] || '0'),
+      parseInt(timeParts[1] || '0')
+    );
+  };
+  
   // Filtrar apenas os que têm mais de uma resposta da MESMA instituição
-  // Não considerar duplicado quando um é Município e outro é DRS
   const duplicados: MunicipioDuplicado[] = [];
-  for (const [municipio, respostasArr] of municipioRespostas) {
+  for (const [chave, respostasArr] of municipioInstituicaoRespostas) {
     if (respostasArr.length > 1) {
-      // Verificar se todas as respostas são do mesmo tipo de instituição
-      const instituicoes = new Set(respostasArr.map(r => r.instituicao));
-      
-      // Se tem tanto Município quanto DRS, não é duplicado real
-      if (instituicoes.has('Municipio') && instituicoes.has('DRS')) {
-        continue;
-      }
+      const [municipio, instituicao] = chave.split('|');
       
       // Ordenar por timestamp (mais recente primeiro)
       const respostasOrdenadas = [...respostasArr].sort((a, b) => {
-        const parseDate = (ts: string) => {
-          if (!ts) return new Date(0);
-          // Formato: "3/24/2026 14:13" ou similar
-          const parts = ts.split(' ');
-          if (parts.length < 2) return new Date(0);
-          const dateParts = parts[0].split('/');
-          const timeParts = parts[1].split(':');
-          if (dateParts.length < 3) return new Date(0);
-          return new Date(
-            parseInt(dateParts[2]), // ano
-            parseInt(dateParts[0]) - 1, // mês (0-indexed)
-            parseInt(dateParts[1]), // dia
-            parseInt(timeParts[0] || '0'),
-            parseInt(timeParts[1] || '0')
-          );
-        };
         return parseDate(b.timestamp).getTime() - parseDate(a.timestamp).getTime();
       });
       
+      // Adicionar indicação da instituição no nome do município
       duplicados.push({
-        municipio,
+        municipio: `${municipio} (${instituicao})`,
         respostas: respostasOrdenadas
       });
     }
@@ -519,9 +518,43 @@ export interface FormularioIncompleto {
 }
 
 // Retorna detalhes dos formulários incompletos (para página de gestão)
+// Não inclui formulários incompletos se o município/DRS já tem um formulário completo
 export function getFormulariosIncompletos(respostas: Resposta[]): FormularioIncompleto[] {
+  // Primeiro, identificar municípios e DRS que já têm formulários completos
+  const municipiosCompletos = new Set<string>();
+  const drsCompletas = new Set<string>();
+  
+  for (const r of respostas) {
+    if (r.complete) {
+      if (r.instituicao === 'Municipio') {
+        for (const m of r.municipiosRespondidos) {
+          municipiosCompletos.add(normalizeNome(m));
+        }
+      } else if (r.instituicao === 'DRS' && r.drs) {
+        drsCompletas.add(r.drs);
+      }
+    }
+  }
+  
   return respostas
-    .filter(r => !r.complete && r.recordId && r.instituicao)
+    .filter(r => {
+      if (r.complete || !r.recordId || !r.instituicao) return false;
+      
+      // Se é município, verificar se algum dos municípios já tem resposta completa
+      if (r.instituicao === 'Municipio') {
+        const todosJaCompletos = r.municipiosRespondidos.every(m => 
+          municipiosCompletos.has(normalizeNome(m))
+        );
+        if (todosJaCompletos && r.municipiosRespondidos.length > 0) return false;
+      }
+      
+      // Se é DRS, verificar se a DRS já tem resposta completa
+      if (r.instituicao === 'DRS' && r.drs && drsCompletas.has(r.drs)) {
+        return false;
+      }
+      
+      return true;
+    })
     .map(r => ({
       recordId: r.recordId,
       nome: r.nomeRespondente,
@@ -578,4 +611,86 @@ export function getDRSIncompletas(respostas: Resposta[]): Set<string> {
   }
   
   return incompletas;
+}
+
+// Interface para lista de municípios com informações geográficas
+export interface MunicipioComInfo {
+  nome: string;
+  drs: string;
+  rras: string;
+  regiaoSaude: string;
+  status: 'completo' | 'incompleto' | 'pendente';
+}
+
+// Retorna lista de municípios com informações geográficas e status
+export function getMunicipiosComStatus(
+  respostas: Resposta[], 
+  municipiosBase: Municipio[]
+): MunicipioComInfo[] {
+  const completos = getMunicipiosRespondidos(respostas, municipiosBase);
+  const incompletos = getMunicipiosIncompletos(respostas, municipiosBase);
+  
+  return municipiosBase.map(m => {
+    const normalizado = normalizeNome(m.nome);
+    let status: 'completo' | 'incompleto' | 'pendente' = 'pendente';
+    
+    if (completos.has(normalizado)) {
+      status = 'completo';
+    } else if (incompletos.has(normalizado)) {
+      status = 'incompleto';
+    }
+    
+    return {
+      nome: m.nome,
+      drs: m.drs,
+      rras: m.rras,
+      regiaoSaude: m.regiaoSaude,
+      status
+    };
+  });
+}
+
+// Interface para lista de DRS com status
+export interface DRSComStatus {
+  nome: string;
+  status: 'completo' | 'incompleto' | 'pendente';
+}
+
+// Lista de todas as DRS do estado de SP
+const TODAS_DRS = [
+  'DRS I - Grande São Paulo',
+  'DRS II - Araçatuba',
+  'DRS III - Araraquara',
+  'DRS IV - Baixada Santista',
+  'DRS V - Barretos',
+  'DRS VI - Bauru',
+  'DRS VII - Campinas',
+  'DRS VIII - Franca',
+  'DRS IX - Marília',
+  'DRS X - Piracicaba',
+  'DRS XI - Presidente Prudente',
+  'DRS XII - Registro',
+  'DRS XIII - Ribeirão Preto',
+  'DRS XIV - São João da Boa Vista',
+  'DRS XV - São José do Rio Preto',
+  'DRS XVI - Sorocaba',
+  'DRS XVII - Taubaté'
+];
+
+// Retorna lista de DRS com status
+export function getDRSComStatus(respostas: Resposta[]): DRSComStatus[] {
+  const completas = getDRSRespondidas(respostas);
+  const incompletas = getDRSIncompletas(respostas);
+  
+  return TODAS_DRS.map(drs => {
+    let status: 'completo' | 'incompleto' | 'pendente' = 'pendente';
+    
+    if (completas.has(drs)) {
+      status = 'completo';
+    } else if (incompletas.has(drs)) {
+      status = 'incompleto';
+    }
+    
+    return { nome: drs, status };
+  });
 }

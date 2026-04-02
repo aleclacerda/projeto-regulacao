@@ -412,32 +412,6 @@ export function Home() {
           <p className="text-xs text-slate-400 mt-2 text-right">de {loading ? '...' : stats.totalDRS}</p>
         </motion.div>
 
-        {/* Questionários - Total */}
-        <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <div className="bg-gradient-to-br from-cyan-500 to-teal-600 p-3 rounded-xl">
-              <FileText className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-xs font-medium text-cyan-600 bg-cyan-50 px-2 py-1 rounded-full">{loading ? '...' : stats.totalLinhasCSV} linhas</span>
-          </div>
-          <p className="text-3xl font-bold text-cyan-600">{loading ? '...' : stats.respostasCompletas}</p>
-          <p className="text-sm text-slate-500 mt-1">Questionários Completos</p>
-          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-            <div className="bg-cyan-50 rounded-lg p-1.5">
-              <p className="text-sm font-bold text-cyan-600">{loading ? '...' : stats.totalQuestionarios}</p>
-              <p className="text-[10px] text-cyan-700">Válidos</p>
-            </div>
-            <div className="bg-amber-50 rounded-lg p-1.5">
-              <p className="text-sm font-bold text-amber-600">{loading ? '...' : stats.duplicados}</p>
-              <p className="text-[10px] text-amber-700">Duplicados</p>
-            </div>
-            <div className="bg-slate-50 rounded-lg p-1.5">
-              <p className="text-sm font-bold text-slate-500">{loading ? '...' : stats.semInstituicao}</p>
-              <p className="text-[10px] text-slate-600">Sem Inst.</p>
-            </div>
-          </div>
-        </motion.div>
-
         {/* Municípios Pendentes */}
         <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
@@ -545,7 +519,7 @@ export function Home() {
                 <div className="flex items-center gap-4 mt-3">
                   <div className="flex items-center gap-1.5 text-xs text-slate-400">
                     <Calendar className="w-3.5 h-3.5" />
-                    <span>Mar - Abr 2026</span>
+                    <span>Mar - 05/Abr 2026</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-emerald-600">
                     <Users className="w-3.5 h-3.5" />
@@ -573,7 +547,7 @@ export function Home() {
                 <div className="flex items-center gap-4 mt-3">
                   <div className="flex items-center gap-1.5 text-xs text-slate-300">
                     <Calendar className="w-3.5 h-3.5" />
-                    <span>Mai - Jun 2026</span>
+                    <span>06/Abr - 31/Mai 2026</span>
                   </div>
                 </div>
               </div>

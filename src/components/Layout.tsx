@@ -3,7 +3,6 @@ import {
   LayoutDashboard, 
   Users,
   BarChart3,
-  Database,
   FileWarning
 } from 'lucide-react';
 
@@ -31,13 +30,7 @@ const menuItems = [
     description: 'Respostas'
   },
   { 
-    label: 'Base de Dados', 
-    icon: Database, 
-    path: '/base-dados',
-    description: 'Visualização'
-  },
-  { 
-    label: 'Formulários Incompletos', 
+    label: 'Gerenciamento de Pendências', 
     icon: FileWarning, 
     path: '/formularios-incompletos',
     description: 'Pendentes'

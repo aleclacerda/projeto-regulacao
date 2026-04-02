@@ -14,10 +14,21 @@ import {
   Eye,
   EyeOff,
   Copy,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  List
 } from 'lucide-react';
-import { loadRespostas, getFormulariosIncompletos, getMunicipiosDuplicados } from '../utils/dataLoader';
-import type { FormularioIncompleto } from '../utils/dataLoader';
+import { 
+  loadRespostas, 
+  getFormulariosIncompletos, 
+  getMunicipiosDuplicados,
+  getMunicipiosComStatus,
+  getDRSComStatus,
+  loadMunicipios
+} from '../utils/dataLoader';
+import type { FormularioIncompleto, MunicipioComInfo, DRSComStatus } from '../utils/dataLoader';
 import type { MunicipioDuplicado } from '../types';
 
 export function FormulariosIncompletos() {
@@ -28,14 +39,18 @@ export function FormulariosIncompletos() {
   const [error, setError] = useState('');
   const [formularios, setFormularios] = useState<FormularioIncompleto[]>([]);
   const [duplicados, setDuplicados] = useState<MunicipioDuplicado[]>([]);
+  const [municipiosStatus, setMunicipiosStatus] = useState<MunicipioComInfo[]>([]);
+  const [drsStatus, setDrsStatus] = useState<DRSComStatus[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterInstituicao, setFilterInstituicao] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'incompletos' | 'duplicados'>('incompletos');
+  const [activeTab, setActiveTab] = useState<'incompletos' | 'duplicados' | 'lista'>('incompletos');
+  const [filterStatus, setFilterStatus] = useState<'todos' | 'completo' | 'incompleto' | 'pendente'>('todos');
+  const [filterTipo, setFilterTipo] = useState<'municipios' | 'drs'>('municipios');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (login === 'incompletos' && senha === 'einstein@123') {
+    if (login === 'einstein' && senha === 'einstein@') {
       setIsAuthenticated(true);
       setError('');
       loadData();
@@ -48,10 +63,15 @@ export function FormulariosIncompletos() {
     setLoading(true);
     try {
       const respostas = await loadRespostas();
+      const municipiosBase = await loadMunicipios();
       const incompletos = getFormulariosIncompletos(respostas);
       const duplicadosData = getMunicipiosDuplicados(respostas);
+      const municipiosComStatus = getMunicipiosComStatus(respostas, municipiosBase);
+      const drsComStatus = getDRSComStatus(respostas);
       setFormularios(incompletos);
       setDuplicados(duplicadosData);
+      setMunicipiosStatus(municipiosComStatus);
+      setDrsStatus(drsComStatus);
     } catch (err) {
       console.error(err);
     } finally {
@@ -72,28 +92,126 @@ export function FormulariosIncompletos() {
   });
 
   const exportCSV = () => {
-    const headers = ['Record ID', 'Nome', 'Cargo', 'Email', 'Telefone', 'Instituição', 'DRS', 'Municípios', 'Data/Hora'];
-    const rows = filteredFormularios.map(f => [
-      f.recordId,
-      f.nome,
-      f.cargo,
-      f.email,
-      f.telefone,
-      f.instituicao,
-      f.drs,
-      f.municipios.join('; '),
-      f.timestamp
-    ]);
-    
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell || ''}"`).join(','))
-      .join('\n');
-    
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `formularios_incompletos_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+    if (activeTab === 'incompletos') {
+      const headers = ['Record ID', 'Nome', 'Cargo', 'Email', 'Telefone', 'Instituição', 'DRS', 'Municípios', 'Data/Hora'];
+      const rows = filteredFormularios.map(f => [
+        f.recordId,
+        f.nome,
+        f.cargo,
+        f.email,
+        f.telefone,
+        f.instituicao,
+        f.drs,
+        f.municipios.join('; '),
+        f.timestamp
+      ]);
+      
+      const csvContent = [headers, ...rows]
+        .map(row => row.map(cell => `"${cell || ''}"`).join(','))
+        .join('\n');
+      
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `formularios_incompletos_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+    } else if (activeTab === 'duplicados') {
+      const headers = ['Município/DRS', 'Qtd Respostas', 'Record ID', 'Nome Respondente', 'Cargo', 'Email', 'Instituição', 'Data/Hora'];
+      const rows: string[][] = [];
+      
+      duplicados.forEach(d => {
+        d.respostas.forEach((r, i) => {
+          rows.push([
+            i === 0 ? d.municipio : '',
+            i === 0 ? String(d.respostas.length) : '',
+            r.recordId,
+            r.nomeRespondente,
+            r.cargo,
+            r.email,
+            r.instituicao,
+            r.timestamp
+          ]);
+        });
+      });
+      
+      const csvContent = [headers, ...rows]
+        .map(row => row.map(cell => `"${cell || ''}"`).join(','))
+        .join('\n');
+      
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `respostas_duplicadas_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+    } else if (activeTab === 'lista') {
+      if (filterTipo === 'municipios') {
+        const headers = ['Município', 'DRS', 'RRAS', 'Região de Saúde', 'Status'];
+        const rows = filteredMunicipios.map(m => [
+          m.nome,
+          m.drs,
+          m.rras,
+          m.regiaoSaude,
+          m.status === 'completo' ? 'Completo' : m.status === 'incompleto' ? 'Incompleto' : 'Pendente'
+        ]);
+        
+        const csvContent = [headers, ...rows]
+          .map(row => row.map(cell => `"${cell || ''}"`).join(','))
+          .join('\n');
+        
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `municipios_${filterStatus}_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+      } else {
+        const headers = ['DRS', 'Status'];
+        const rows = filteredDRS.map(d => [
+          d.nome,
+          d.status === 'completo' ? 'Completo' : d.status === 'incompleto' ? 'Incompleto' : 'Pendente'
+        ]);
+        
+        const csvContent = [headers, ...rows]
+          .map(row => row.map(cell => `"${cell || ''}"`).join(','))
+          .join('\n');
+        
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `drs_${filterStatus}_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+      }
+    }
+  };
+
+  // Filtros para lista de municípios
+  const filteredMunicipios = municipiosStatus.filter(m => {
+    const matchStatus = filterStatus === 'todos' || m.status === filterStatus;
+    const matchSearch = !searchTerm || 
+      m.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.drs.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.rras.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.regiaoSaude.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchStatus && matchSearch;
+  });
+
+  // Filtros para lista de DRS
+  const filteredDRS = drsStatus.filter(d => {
+    const matchStatus = filterStatus === 'todos' || d.status === filterStatus;
+    const matchSearch = !searchTerm || d.nome.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchStatus && matchSearch;
+  });
+
+  // Contadores
+  const countMunicipios = {
+    completo: municipiosStatus.filter(m => m.status === 'completo').length,
+    incompleto: municipiosStatus.filter(m => m.status === 'incompleto').length,
+    pendente: municipiosStatus.filter(m => m.status === 'pendente').length
+  };
+
+  const countDRS = {
+    completo: drsStatus.filter(d => d.status === 'completo').length,
+    incompleto: drsStatus.filter(d => d.status === 'incompleto').length,
+    pendente: drsStatus.filter(d => d.status === 'pendente').length
   };
 
   if (!isAuthenticated) {
@@ -171,21 +289,30 @@ export function FormulariosIncompletos() {
         className="flex items-center justify-between"
       >
         <div className="flex items-center gap-3">
-          <div className={`p-3 rounded-xl ${activeTab === 'incompletos' ? 'bg-amber-100' : 'bg-red-100'}`}>
+          <div className={`p-3 rounded-xl ${
+            activeTab === 'incompletos' ? 'bg-amber-100' : 
+            activeTab === 'duplicados' ? 'bg-red-100' : 'bg-blue-100'
+          }`}>
             {activeTab === 'incompletos' ? (
               <FileWarning className="w-6 h-6 text-amber-600" />
-            ) : (
+            ) : activeTab === 'duplicados' ? (
               <Copy className="w-6 h-6 text-red-600" />
+            ) : (
+              <List className="w-6 h-6 text-blue-600" />
             )}
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-800">
-              {activeTab === 'incompletos' ? 'Formulários Incompletos' : 'Respostas Duplicadas'}
+              Gerenciamento de Pendências
             </h1>
             <p className="text-slate-500">
               {activeTab === 'incompletos' 
                 ? `${filteredFormularios.length} formulário(s) pendente(s) de preenchimento`
-                : `${duplicados.length} município(s)/DRS com múltiplas respostas`
+                : activeTab === 'duplicados'
+                ? `${duplicados.length} município(s)/DRS com múltiplas respostas`
+                : filterTipo === 'municipios' 
+                  ? `${filteredMunicipios.length} município(s) encontrado(s)`
+                  : `${filteredDRS.length} DRS encontrada(s)`
               }
             </p>
           </div>
@@ -205,7 +332,7 @@ export function FormulariosIncompletos() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="flex gap-2"
+        className="flex gap-2 flex-wrap"
       >
         <button
           onClick={() => setActiveTab('incompletos')}
@@ -229,9 +356,20 @@ export function FormulariosIncompletos() {
           <AlertTriangle className="w-4 h-4" />
           Duplicados ({duplicados.length})
         </button>
+        <button
+          onClick={() => setActiveTab('lista')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+            activeTab === 'lista'
+              ? 'bg-blue-600 text-white'
+              : 'bg-white text-slate-600 hover:bg-blue-50'
+          }`}
+        >
+          <List className="w-4 h-4" />
+          Lista por Status
+        </button>
       </motion.div>
 
-      {/* Filtros - apenas para incompletos */}
+      {/* Filtros - para incompletos */}
       {activeTab === 'incompletos' && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -358,7 +496,7 @@ export function FormulariosIncompletos() {
             ))
           )}
         </motion.div>
-      ) : (
+      ) : activeTab === 'duplicados' ? (
         /* Aba de Duplicados */
         <motion.div
           initial={{ opacity: 0 }}
@@ -458,6 +596,206 @@ export function FormulariosIncompletos() {
             ))
           )}
         </motion.div>
+      ) : null}
+
+      {/* Aba Lista por Status */}
+      {activeTab === 'lista' && (
+        <>
+          {/* Filtros para lista */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white rounded-xl shadow-sm p-4 space-y-4"
+          >
+            {/* Tipo: Municípios ou DRS */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setFilterTipo('municipios')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  filterTipo === 'municipios'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <MapPin className="w-4 h-4" />
+                Municípios ({municipiosStatus.length})
+              </button>
+              <button
+                onClick={() => setFilterTipo('drs')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  filterTipo === 'drs'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <Building2 className="w-4 h-4" />
+                DRS ({drsStatus.length})
+              </button>
+            </div>
+
+            {/* Filtros de status */}
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex-1 min-w-[200px]">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder={filterTipo === 'municipios' ? "Buscar por município, DRS, RRAS..." : "Buscar por DRS..."}
+                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setFilterStatus('todos')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    filterStatus === 'todos'
+                      ? 'bg-slate-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Todos
+                </button>
+                <button
+                  onClick={() => setFilterStatus('completo')}
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    filterStatus === 'completo'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                  }`}
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Completos ({filterTipo === 'municipios' ? countMunicipios.completo : countDRS.completo})
+                </button>
+                <button
+                  onClick={() => setFilterStatus('incompleto')}
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    filterStatus === 'incompleto'
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                  }`}
+                >
+                  <Clock className="w-4 h-4" />
+                  Incompletos ({filterTipo === 'municipios' ? countMunicipios.incompleto : countDRS.incompleto})
+                </button>
+                <button
+                  onClick={() => setFilterStatus('pendente')}
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    filterStatus === 'pendente'
+                      ? 'bg-red-600 text-white'
+                      : 'bg-red-50 text-red-700 hover:bg-red-100'
+                  }`}
+                >
+                  <XCircle className="w-4 h-4" />
+                  Pendentes ({filterTipo === 'municipios' ? countMunicipios.pendente : countDRS.pendente})
+                </button>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Lista de Municípios */}
+          {filterTipo === 'municipios' && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="bg-white rounded-xl shadow-sm overflow-hidden"
+            >
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="text-left px-4 py-3 text-sm font-semibold text-slate-600">Município</th>
+                      <th className="text-left px-4 py-3 text-sm font-semibold text-slate-600">DRS</th>
+                      <th className="text-left px-4 py-3 text-sm font-semibold text-slate-600">RRAS</th>
+                      <th className="text-left px-4 py-3 text-sm font-semibold text-slate-600">Região de Saúde</th>
+                      <th className="text-center px-4 py-3 text-sm font-semibold text-slate-600">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredMunicipios.map((m, idx) => (
+                      <tr key={m.nome} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                        <td className="px-4 py-3 text-sm font-medium text-slate-800">{m.nome}</td>
+                        <td className="px-4 py-3 text-sm text-slate-600">{m.drs}</td>
+                        <td className="px-4 py-3 text-sm text-slate-600">{m.rras}</td>
+                        <td className="px-4 py-3 text-sm text-slate-600">{m.regiaoSaude}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                            m.status === 'completo' 
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : m.status === 'incompleto'
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            {m.status === 'completo' && <CheckCircle2 className="w-3 h-3" />}
+                            {m.status === 'incompleto' && <Clock className="w-3 h-3" />}
+                            {m.status === 'pendente' && <XCircle className="w-3 h-3" />}
+                            {m.status === 'completo' ? 'Completo' : m.status === 'incompleto' ? 'Incompleto' : 'Pendente'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {filteredMunicipios.length === 0 && (
+                <div className="p-8 text-center text-slate-500">
+                  Nenhum município encontrado com os filtros selecionados
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Lista de DRS */}
+          {filterTipo === 'drs' && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="bg-white rounded-xl shadow-sm overflow-hidden"
+            >
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="text-left px-4 py-3 text-sm font-semibold text-slate-600">DRS</th>
+                      <th className="text-center px-4 py-3 text-sm font-semibold text-slate-600">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredDRS.map((d, idx) => (
+                      <tr key={d.nome} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                        <td className="px-4 py-3 text-sm font-medium text-slate-800">{d.nome}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                            d.status === 'completo' 
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : d.status === 'incompleto'
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            {d.status === 'completo' && <CheckCircle2 className="w-3 h-3" />}
+                            {d.status === 'incompleto' && <Clock className="w-3 h-3" />}
+                            {d.status === 'pendente' && <XCircle className="w-3 h-3" />}
+                            {d.status === 'completo' ? 'Completo' : d.status === 'incompleto' ? 'Incompleto' : 'Pendente'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {filteredDRS.length === 0 && (
+                <div className="p-8 text-center text-slate-500">
+                  Nenhuma DRS encontrada com os filtros selecionados
+                </div>
+              )}
+            </motion.div>
+          )}
+        </>
       )}
     </div>
   );

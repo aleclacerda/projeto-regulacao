@@ -414,15 +414,14 @@ const PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS = [
   },
   {
     id: 'analise_dependencia',
-    coluna: 'No monitoramento, como essa dependência é analisada?',
     titulo: 'Análise da dependência assistencial',
-    tipo: 'dropdown',
-    opcoes: [
-      { label: 'Fluxos dentro da própria RRAS', match: 'Fluxos dentro da própria RRAS (entre municípios/regiões de saúde)' },
-      { label: 'Fluxos para outras RRAS do estado', match: 'Fluxos para outras RRAS do estado' },
-      { label: 'Fluxos para outros DRS (fora da RRAS)', match: 'Fluxos para outros DRS (fora da RRAS)' },
-      { label: 'Não há distinção formal', match: 'Não há distinção formal' },
-      { label: 'Outro', match: 'Outro' }
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'No monitoramento, como essa dependência é analisada? (choice=Fluxos dentro da própria RRAS (entre municípios/regiões de saúde))', label: 'Fluxos dentro da própria RRAS' },
+      { coluna: 'No monitoramento, como essa dependência é analisada? (choice=Fluxos para outras RRAS do estado)', label: 'Fluxos para outras RRAS' },
+      { coluna: 'No monitoramento, como essa dependência é analisada? (choice=Fluxos para outros DRS (fora da RRAS))', label: 'Fluxos para outros DRS' },
+      { coluna: 'No monitoramento, como essa dependência é analisada? (choice=Não há distinção formal)', label: 'Não há distinção formal' },
+      { coluna: 'No monitoramento, como essa dependência é analisada? (choice=Outro)', label: 'Outro' }
     ]
   }
 ];
@@ -568,6 +567,50 @@ const PERGUNTAS_BLOCO_ORDENACAO = [
       { label: 'SIRESP', match: 'SIRESP' },
       { label: 'E-SUS Regulação', match: 'E-SUS Regulação' },
       { label: 'Sistema próprio', match: 'Sistema próprio' }
+    ]
+  },
+  {
+    id: 'aae_protocolos',
+    coluna: 'As equipes da AAE  conhecem e utilizam os protocolos regionais de regulação e encaminhamento da rede de saúde?',
+    titulo: 'AAE conhece protocolos regionais',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Conhecem e utilizam regularmente', match: 'Conhecem e utilizam regularmente' },
+      { label: 'Conhecem, mas utilizam pouco', match: 'Conhecem, mas utilizam pouco' },
+      { label: 'Não conhecem', match: 'Não conhecem' }
+    ]
+  },
+  {
+    id: 'aae_fluxos',
+    coluna: 'As equipes da AAE  utilizam os fluxos regionais de regulação do acesso ?',
+    titulo: 'AAE utiliza fluxos regionais',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, com facilidade', match: 'Sim, com facilidade' },
+      { label: 'Sim, mas com dificuldade', match: 'Sim, mas com dificuldade' },
+      { label: 'Não utilizam', match: 'Não utilizam' }
+    ]
+  },
+  {
+    id: 'aae_solicita_exames',
+    coluna: 'Os especialistas podem solicitar diretamente exames ou procedimentos de maior complexidade sem passar pela regulação? ',
+    titulo: 'Especialistas solicitam exames diretamente',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim, sistematicamente', match: 'Sim, sistematicamente' },
+      { label: 'Sim, ocasionalmente', match: 'Sim, ocasionalmente' },
+      { label: 'Não ocorre', match: 'Não ocorre' }
+    ]
+  },
+  {
+    id: 'aae_acompanhamento',
+    coluna: 'Como as  equipes da AAE acompanham o andamento da solicitação  após a inserção   na regulação?',
+    titulo: 'AAE acompanha solicitações',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'SIRESP', match: 'SIRESP' },
+      { label: 'Sistema próprio', match: 'Sistema próprio' },
+      { label: 'Não acompanham', match: 'Não acompanham' }
     ]
   },
   {
@@ -2254,9 +2297,8 @@ export function Analise() {
     PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[5].opcoes!
   );
 
-  const analiseAnaliseDependencia = analisarPerguntaDRS(
-    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[6].coluna!,
-    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[6].opcoes!
+  const analiseAnaliseDependencia = analisarCheckboxDRS(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[6].colunas!
   );
 
   // ========== ANÁLISES DO BLOCO GOVERNANÇA (DRS) ==========
@@ -2574,44 +2616,64 @@ export function Analise() {
     PERGUNTAS_BLOCO_ORDENACAO[8].opcoes!
   );
 
-  const analiseSolicitacoesHospitalar = analisarPergunta(
+  const analiseAAEProtocolos = analisarPergunta(
     PERGUNTAS_BLOCO_ORDENACAO[9].coluna!,
     PERGUNTAS_BLOCO_ORDENACAO[9].opcoes!
   );
 
-  const analiseComunicacaoSAMU = analisarPergunta(
+  const analiseAAEFluxos = analisarPergunta(
     PERGUNTAS_BLOCO_ORDENACAO[10].coluna!,
     PERGUNTAS_BLOCO_ORDENACAO[10].opcoes!
   );
 
-  const analiseTransferenciaHospitalar = analisarPergunta(
+  const analiseAAESolicitaExames = analisarPergunta(
     PERGUNTAS_BLOCO_ORDENACAO[11].coluna!,
     PERGUNTAS_BLOCO_ORDENACAO[11].opcoes!
   );
 
-  const analiseClassificacaoRisco = analisarPergunta(
+  const analiseAAEAcompanhamento = analisarPergunta(
     PERGUNTAS_BLOCO_ORDENACAO[12].coluna!,
     PERGUNTAS_BLOCO_ORDENACAO[12].opcoes!
   );
 
-  const analiseVagaZero = analisarPergunta(
+  const analiseSolicitacoesHospitalar = analisarPergunta(
     PERGUNTAS_BLOCO_ORDENACAO[13].coluna!,
     PERGUNTAS_BLOCO_ORDENACAO[13].opcoes!
   );
 
-  const analiseTransferenciaUrgencia = analisarPergunta(
+  const analiseComunicacaoSAMU = analisarPergunta(
     PERGUNTAS_BLOCO_ORDENACAO[14].coluna!,
     PERGUNTAS_BLOCO_ORDENACAO[14].opcoes!
   );
 
-  const analiseAcompanhamentoSistema = analisarPergunta(
+  const analiseTransferenciaHospitalar = analisarPergunta(
     PERGUNTAS_BLOCO_ORDENACAO[15].coluna!,
     PERGUNTAS_BLOCO_ORDENACAO[15].opcoes!
   );
 
-  const analiseSolicitacoesDuplicadas = analisarPergunta(
+  const analiseClassificacaoRisco = analisarPergunta(
     PERGUNTAS_BLOCO_ORDENACAO[16].coluna!,
     PERGUNTAS_BLOCO_ORDENACAO[16].opcoes!
+  );
+
+  const analiseVagaZero = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[17].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[17].opcoes!
+  );
+
+  const analiseTransferenciaUrgencia = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[18].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[18].opcoes!
+  );
+
+  const analiseAcompanhamentoSistema = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[19].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[19].opcoes!
+  );
+
+  const analiseSolicitacoesDuplicadas = analisarPergunta(
+    PERGUNTAS_BLOCO_ORDENACAO[20].coluna!,
+    PERGUNTAS_BLOCO_ORDENACAO[20].opcoes!
   );
 
   // ========== ANÁLISES DO BLOCO PRIORIZAÇÃO CLÍNICA ==========
@@ -3190,52 +3252,76 @@ export function Analise() {
               perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[8].coluna}
             />
             <PerguntaCompacta 
-              titulo="Solicitações hospitalares em sistema"
-              dados={analiseSolicitacoesHospitalar}
+              titulo="AAE conhece protocolos regionais"
+              dados={analiseAAEProtocolos}
               corIndex={3}
               perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[9].coluna}
             />
             <PerguntaCompacta 
-              titulo="Comunicação SAMU e Central de Internações"
-              dados={analiseComunicacaoSAMU}
+              titulo="AAE utiliza fluxos regionais"
+              dados={analiseAAEFluxos}
               corIndex={4}
               perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[10].coluna}
             />
             <PerguntaCompacta 
-              titulo="Solicitação de transferência hospitalar"
-              dados={analiseTransferenciaHospitalar}
+              titulo="Especialistas solicitam exames diretamente"
+              dados={analiseAAESolicitaExames}
               corIndex={5}
               perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[11].coluna}
             />
             <PerguntaCompacta 
-              titulo="Classificação de risco nas urgências"
-              dados={analiseClassificacaoRisco}
+              titulo="AAE acompanha solicitações"
+              dados={analiseAAEAcompanhamento}
               corIndex={0}
               perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[12].coluna}
             />
             <PerguntaCompacta 
-              titulo="Utiliza vaga zero em urgências"
-              dados={analiseVagaZero}
+              titulo="Solicitações hospitalares em sistema"
+              dados={analiseSolicitacoesHospitalar}
               corIndex={1}
               perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[13].coluna}
             />
             <PerguntaCompacta 
-              titulo="Regulação de transferência em urgência"
-              dados={analiseTransferenciaUrgencia}
+              titulo="Comunicação SAMU e Central de Internações"
+              dados={analiseComunicacaoSAMU}
               corIndex={2}
               perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[14].coluna}
             />
             <PerguntaCompacta 
-              titulo="Sistema permite acompanhar solicitações"
-              dados={analiseAcompanhamentoSistema}
+              titulo="Solicitação de transferência hospitalar"
+              dados={analiseTransferenciaHospitalar}
               corIndex={3}
               perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[15].coluna}
             />
             <PerguntaCompacta 
-              titulo="Identificação de solicitações duplicadas"
-              dados={analiseSolicitacoesDuplicadas}
+              titulo="Classificação de risco nas urgências"
+              dados={analiseClassificacaoRisco}
               corIndex={4}
               perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[16].coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Utiliza vaga zero em urgências"
+              dados={analiseVagaZero}
+              corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[17].coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Regulação de transferência em urgência"
+              dados={analiseTransferenciaUrgencia}
+              corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[18].coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Sistema permite acompanhar solicitações"
+              dados={analiseAcompanhamentoSistema}
+              corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[19].coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Identificação de solicitações duplicadas"
+              dados={analiseSolicitacoesDuplicadas}
+              corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[20].coluna}
             />
           </div>
         </motion.div>
