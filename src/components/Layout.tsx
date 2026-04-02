@@ -3,7 +3,8 @@ import {
   LayoutDashboard, 
   Users,
   BarChart3,
-  Database
+  Database,
+  FileWarning
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -34,6 +35,12 @@ const menuItems = [
     icon: Database, 
     path: '/base-dados',
     description: 'Visualização'
+  },
+  { 
+    label: 'Formulários Incompletos', 
+    icon: FileWarning, 
+    path: '/formularios-incompletos',
+    description: 'Pendentes'
   },
 ];
 

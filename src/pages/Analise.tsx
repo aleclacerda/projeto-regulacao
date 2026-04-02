@@ -35,7 +35,7 @@ const BLOCOS_DRS = [
 const PERGUNTAS_BLOCO_ORDENACAO_DRS = [
   {
     id: 'diretrizes_regionais',
-    coluna: 'Existem diretrizes regionais para ordenação da demanda para atenção especializada?',
+    coluna: 'Existem diretrizes regionais para ordenação da demanda para atenção especializada? ',
     titulo: 'Diretrizes regionais para ordenação da demanda',
     tipo: 'dropdown',
     opcoes: [
@@ -355,18 +355,17 @@ const PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS = [
   },
   {
     id: 'etapas_gestao_contratos',
-    coluna: 'O DRS atua em quais etapas da gestão de contratos com prestadores de serviços de saúde?',
-    titulo: 'Etapas de gestão de contratos com prestadores',
-    tipo: 'dropdown',
-    opcoes: [
-      { label: 'Não atua', match: 'Não atua' },
-      { label: 'Levantamento de necessidades assistenciais', match: 'Levantamento de necessidades assistenciais da região' },
-      { label: 'Definição de oferta/escopo dos serviços', match: 'Definição de oferta/escopo dos serviços' },
-      { label: 'Definição de metas quantitativas/qualitativas', match: 'Definição de metas quantitativas/qualitativas' },
-      { label: 'Monitoramento da produção', match: 'Monitoramento da produção e cumprimento de metas' },
-      { label: 'Avaliação de desempenho dos prestadores', match: 'Avaliação de desempenho dos prestadores' },
-      { label: 'Proposição de ajustes na oferta/contrato', match: 'Proposição de ajustes na oferta/contrato' },
-      { label: 'Outro', match: 'Outro' }
+    titulo: 'Etapas de gestão de contratos',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'O DRS atua em quais etapas da gestão de contratos com prestadores de serviços de saúde? (choice=Não atua)', label: 'Não atua' },
+      { coluna: 'O DRS atua em quais etapas da gestão de contratos com prestadores de serviços de saúde? (choice=Levantamento de necessidades assistenciais da região)', label: 'Levantamento de necessidades assistenciais' },
+      { coluna: 'O DRS atua em quais etapas da gestão de contratos com prestadores de serviços de saúde? (choice=Definição de oferta/escopo dos serviços)', label: 'Definição de oferta/escopo dos serviços' },
+      { coluna: 'O DRS atua em quais etapas da gestão de contratos com prestadores de serviços de saúde? (choice=Definição de metas quantitativas/qualitativas)', label: 'Definição de metas quantitativas/qualitativas' },
+      { coluna: 'O DRS atua em quais etapas da gestão de contratos com prestadores de serviços de saúde? (choice=Monitoramento da produção e cumprimento de metas)', label: 'Monitoramento da produção' },
+      { coluna: 'O DRS atua em quais etapas da gestão de contratos com prestadores de serviços de saúde? (choice=Avaliação de desempenho dos prestadores)', label: 'Avaliação de desempenho dos prestadores' },
+      { coluna: 'O DRS atua em quais etapas da gestão de contratos com prestadores de serviços de saúde? (choice=Proposição de ajustes na oferta/contrato)', label: 'Proposição de ajustes na oferta/contrato' },
+      { coluna: 'O DRS atua em quais etapas da gestão de contratos com prestadores de serviços de saúde? (choice=Outro)', label: 'Outro' }
     ]
   },
   {
@@ -891,7 +890,7 @@ const PERGUNTAS_BLOCO_PRIORIZACAO = [
 const PERGUNTAS_BLOCO_GESTAO_OFERTA = [
   {
     id: 'mapeamento_ubs',
-    coluna: 'O município mantém mapeamento atualizado da oferta assistencial nas UBS?',
+    coluna: 'O município mantém mapeamento atualizado da oferta assistencial nas UBS? ',
     titulo: 'Mapeamento da oferta nas UBS',
     tipo: 'dropdown',
     opcoes: [
@@ -1164,16 +1163,6 @@ const PERGUNTAS_BLOCO_GESTAO_OFERTA = [
     id: 'transporte_suficiente',
     coluna: 'A oferta de transporte é suficiente para atender à demanda regulada?',
     titulo: 'Transporte suficiente',
-    tipo: 'dropdown',
-    opcoes: [
-      { label: 'Sim', match: 'Sim' },
-      { label: 'Não', match: 'Não' }
-    ]
-  },
-  {
-    id: 'gestao_propria_populacao',
-    coluna: 'O municipio realiza gestão da oferta de serviços de saúde exclusivamente para o atendimento da sua própria população?',
-    titulo: 'Gestão exclusiva para própria população',
     tipo: 'dropdown',
     opcoes: [
       { label: 'Sim', match: 'Sim' },
@@ -1524,7 +1513,7 @@ const PERGUNTAS_BLOCO_ESTRUTURA = [
   },
   {
     id: 'gestao_oferta',
-    coluna: 'O município realiza a gestão da sua oferta de serviços de saúde exclusivamente para atendimento da sua própria população?',
+    coluna: 'O município realiza a gestão da sua oferta de serviços de saúde exclusivamente para   atendimento da sua própria população?',
     titulo: 'Gestão exclusiva para própria população',
     tipo: 'dropdown',
     opcoes: [
@@ -2241,9 +2230,8 @@ export function Analise() {
     PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[0].opcoes!
   );
 
-  const analiseEtapasGestaoContratos = analisarPerguntaDRS(
-    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[1].coluna!,
-    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[1].opcoes!
+  const analiseEtapasGestaoContratos = analisarCheckboxDRS(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[1].colunas!
   );
 
   const analiseOrganizacaoOfertas = analisarPerguntaDRS(
@@ -2541,11 +2529,6 @@ export function Analise() {
     PERGUNTAS_BLOCO_GESTAO_OFERTA[24].opcoes!
   );
 
-  const analiseGestaoPropria = analisarPergunta(
-    PERGUNTAS_BLOCO_GESTAO_OFERTA[25].coluna!,
-    PERGUNTAS_BLOCO_GESTAO_OFERTA[25].opcoes!
-  );
-
   // ========== ANÁLISES DO BLOCO ORDENAÇÃO DA DEMANDA ==========
   const analiseFilaUBS = analisarPergunta(
     PERGUNTAS_BLOCO_ORDENACAO[0].coluna!,
@@ -2734,11 +2717,13 @@ export function Analise() {
   const PerguntaCompacta = ({ 
     titulo, 
     dados, 
-    corIndex = 0 
+    corIndex = 0,
+    perguntaCompleta
   }: { 
     titulo: string; 
     dados: ResultadoAnalise[]; 
     corIndex?: number;
+    perguntaCompleta?: string;
   }) => {
     const total = dados.reduce((acc, d) => acc + d.quantidade, 0);
     // Ordenar do maior para o menor
@@ -2748,7 +2733,12 @@ export function Analise() {
     return (
       <div className="bg-white rounded-xl border border-slate-200 p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-medium text-slate-700 text-sm">{titulo}</h3>
+          <h3 
+            className="font-medium text-slate-700 text-sm cursor-help"
+            title={perguntaCompleta || titulo}
+          >
+            {titulo}
+          </h3>
           <span className="text-xs text-slate-400">{total} resp.</span>
         </div>
         <div className="space-y-3">
@@ -2991,27 +2981,32 @@ export function Analise() {
               titulo="Papel na organização da RRAS"
               dados={analisePapelRRAS}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_RRAS[0].coluna}
             />
             <PerguntaCompacta 
               titulo="Recebe pacientes para consultas eletivas"
               dados={analiseRecebeEletivas}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_RRAS[1].coluna}
             />
             <PerguntaCompacta 
               titulo="Recebe pacientes para urgências"
               dados={analiseRecebeUrgencias}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_RRAS[2].coluna}
             />
             <PerguntaCompacta 
               titulo="Destino mais frequente de encaminhamentos"
               dados={analiseDestinoEncaminhamento}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_RRAS[3].coluna}
             />
             <div className="md:col-span-2">
               <PerguntaCompacta 
                 titulo="Oferta própria de serviços especializados"
                 dados={analiseOfertaServicos}
                 corIndex={4}
+                perguntaCompleta="Quais serviços especializados o município oferta para a própria população?"
               />
             </div>
           </div>
@@ -3036,75 +3031,90 @@ export function Analise() {
               titulo="Estrutura formal de regulação"
               dados={analiseEstruturaFormal}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA[0].coluna}
             />
             <PerguntaCompacta 
               titulo="Serviços regulados pelo município"
               dados={analiseServicosRegulados}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA[1].titulo}
             />
             <PerguntaCompacta 
               titulo="Gestão exclusiva para própria população"
               dados={analiseGestaoOferta}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA[2].coluna}
             />
             <PerguntaCompacta 
               titulo="Equipe dedicada à regulação"
               dados={analiseEquipeRegulacao}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA[3].coluna}
             />
             <PerguntaCompacta 
               titulo="Possui médico regulador"
               dados={analiseMedicoRegulador}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA[4].coluna}
             />
             <PerguntaCompacta 
               titulo="Outro profissional de nível superior"
               dados={analiseOutroProfissional}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA[5].coluna}
             />
             <PerguntaCompacta 
               titulo="Recursos humanos e técnicos suficientes"
               dados={analiseRecursosTecnicos}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA[6].coluna}
             />
             <PerguntaCompacta 
               titulo="Mecanismos remotos de apoio"
               dados={analiseMecanismoRemoto}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA[7].titulo}
             />
             <PerguntaCompacta 
               titulo="Transporte sanitário integrado"
               dados={analiseTransporteSanitario}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA[8].coluna}
             />
             <PerguntaCompacta 
               titulo="Atendimento pré-hospitalar móvel"
               dados={analisePreHospitalar}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA[9].titulo}
             />
             <PerguntaCompacta 
               titulo="Sistemas utilizados para regulação"
               dados={analiseSistemasRegulacao}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA[10].titulo}
             />
             <PerguntaCompacta 
               titulo="Integração com outros sistemas"
               dados={analiseIntegracaoSistemas}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA[11].coluna}
             />
             <PerguntaCompacta 
               titulo="IA/Algoritmos para gestão de fila"
               dados={analiseIARegulacao}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA[12].coluna}
             />
             <PerguntaCompacta 
               titulo="Quantidade de profissionais na regulação"
               dados={analiseQtdProfissionais}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA[13].coluna}
             />
             <PerguntaCompacta 
               titulo="Quem oferta o serviço de apoio remoto"
               dados={analiseOfertaApoioRemoto}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA[14].coluna}
               corIndex={2}
             />
           </div>
@@ -3129,86 +3139,103 @@ export function Analise() {
               titulo="UBS inserem solicitações em fila eletrônica"
               dados={analiseFilaUBS}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[0].coluna}
             />
             <PerguntaCompacta 
               titulo="Sistema utilizado nas UBS"
               dados={analiseSistemaUBS}
               corIndex={1}
+              perguntaCompleta="Qual o sistema utilizado nas UBS para solicitação da vaga?"
             />
             <PerguntaCompacta 
               titulo="UBS utilizam protocolos municipais"
               dados={analiseProtocolosMunicipais}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[2].coluna}
             />
             <PerguntaCompacta 
               titulo="UBS utilizam protocolos regionais"
               dados={analiseProtocolosRegionais}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[3].coluna}
             />
             <PerguntaCompacta 
               titulo="UBS solicitam exames de maior complexidade"
               dados={analiseExamesComplexidade}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[4].coluna}
             />
             <PerguntaCompacta 
               titulo="UBS acompanham andamento da solicitação"
               dados={analiseAcompanhamentoUBS}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[5].coluna}
             />
             <PerguntaCompacta 
               titulo="Fluxo de contrarreferência hospitalar-APS"
               dados={analiseContrarreferencia}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[6].coluna}
             />
             <PerguntaCompacta 
               titulo="Possui oferta de AAE"
               dados={analiseOfertaAAE}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[7].coluna}
             />
             <PerguntaCompacta 
               titulo="Sistema utilizado na AAE"
               dados={analiseSistemaAAE}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[8].coluna}
             />
             <PerguntaCompacta 
               titulo="Solicitações hospitalares em sistema"
               dados={analiseSolicitacoesHospitalar}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[9].coluna}
             />
             <PerguntaCompacta 
               titulo="Comunicação SAMU e Central de Internações"
               dados={analiseComunicacaoSAMU}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[10].coluna}
             />
             <PerguntaCompacta 
               titulo="Solicitação de transferência hospitalar"
               dados={analiseTransferenciaHospitalar}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[11].coluna}
             />
             <PerguntaCompacta 
               titulo="Classificação de risco nas urgências"
               dados={analiseClassificacaoRisco}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[12].coluna}
             />
             <PerguntaCompacta 
               titulo="Utiliza vaga zero em urgências"
               dados={analiseVagaZero}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[13].coluna}
             />
             <PerguntaCompacta 
               titulo="Regulação de transferência em urgência"
               dados={analiseTransferenciaUrgencia}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[14].coluna}
             />
             <PerguntaCompacta 
               titulo="Sistema permite acompanhar solicitações"
               dados={analiseAcompanhamentoSistema}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[15].coluna}
             />
             <PerguntaCompacta 
               titulo="Identificação de solicitações duplicadas"
               dados={analiseSolicitacoesDuplicadas}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO[16].coluna}
             />
           </div>
         </motion.div>
@@ -3232,101 +3259,121 @@ export function Analise() {
               titulo="Protocolos de acesso formalizados"
               dados={analiseProtocolosAcesso}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[0].coluna}
             />
             <PerguntaCompacta 
               titulo="Critérios de priorização em protocolos"
               dados={analiseCriteriosPriorizacao}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[1].coluna}
             />
             <PerguntaCompacta 
               titulo="Critérios utilizados para priorização"
               dados={analiseQuaisCriterios}
               corIndex={2}
+              perguntaCompleta="Quais critérios são utilizados para priorização clínica?"
             />
             <PerguntaCompacta 
               titulo="Apoio matricial para qualificação"
               dados={analiseApoioMatricial}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[3].coluna}
             />
             <PerguntaCompacta 
               titulo="Devolução de solicitação inadequada"
               dados={analiseDevolucaoDemanda}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[4].coluna}
             />
             <PerguntaCompacta 
               titulo="Protocolos utilizados na avaliação"
               dados={analiseProtocolosAvaliacao}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[5].coluna}
             />
             <PerguntaCompacta 
               titulo="Critério para local de agendamento"
               dados={analiseCriterioAgendamento}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[6].coluna}
             />
             <PerguntaCompacta 
               titulo="Fluxos formalizados para linhas de cuidado"
               dados={analiseFluxosLinhasCuidado}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[7].coluna}
             />
             <PerguntaCompacta 
               titulo="Fluxos pactuados para SAMU"
               dados={analiseFluxosSAMU}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[8].coluna}
             />
             <PerguntaCompacta 
               titulo="Fluxos pactuados inter-hospitalar"
               dados={analiseFluxosInterhospitalar}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[9].coluna}
             />
             <PerguntaCompacta 
               titulo="Fluxos pactuados para internações eletivas"
               dados={analiseFluxosEletivas}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[10].coluna}
             />
             <PerguntaCompacta 
               titulo="Fluxos pactuados para consultas/exames"
               dados={analiseFluxosConsultas}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[11].coluna}
             />
             <PerguntaCompacta 
               titulo="Classificação em níveis de prioridade"
               dados={analiseNiveisPrioridade}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[12].coluna}
             />
             <PerguntaCompacta 
               titulo="Quem realiza a classificação"
               dados={analiseQuemClassifica}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[13].coluna}
             />
             <PerguntaCompacta 
               titulo="Monitoramento sistemático das filas"
               dados={analiseMonitoramentoFilas}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[14].coluna}
             />
             <PerguntaCompacta 
               titulo="Tempos máximos pactuados"
               dados={analiseTemposMaximos}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[15].coluna}
             />
             <PerguntaCompacta 
               titulo="Tempo médio de espera"
               dados={analiseTempoEspera}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[16].coluna}
             />
             <PerguntaCompacta 
               titulo="Atendimentos fora da fila regulada"
               dados={analiseAtendimentosForaFila}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[17].coluna}
             />
             <PerguntaCompacta 
               titulo="Filas paralelas fora do sistema"
               dados={analiseFilasParalelas}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[18].coluna}
             />
             <PerguntaCompacta 
               titulo="Acesso em tempo real à fila"
               dados={analiseAcessoTempoReal}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[19].coluna}
             />
           </div>
         </motion.div>
@@ -3350,106 +3397,127 @@ export function Analise() {
               titulo="Área responsável pela regulação"
               dados={analiseAreaResponsavel}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[0].coluna}
             />
             <PerguntaCompacta 
               titulo="Regulação é prioridade estratégica"
               dados={analisePrioridadeEstrategica}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[1].coluna}
             />
             <PerguntaCompacta 
               titulo="Papel do DRS na regulação"
               dados={analisePapelDRSGov}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[2].coluna}
             />
             <PerguntaCompacta 
               titulo="Papel do CEGRAS na regulação"
               dados={analisePapelCEGRAS}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[3].coluna}
             />
             <PerguntaCompacta 
               titulo="Relação com regulação regional/estadual"
               dados={analiseRelacaoRegulacao}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[4].coluna}
             />
             <PerguntaCompacta 
               titulo="Definição dos critérios de acesso"
               dados={analiseDefinicaoCriterios}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[5].coluna}
             />
             <PerguntaCompacta 
               titulo="Prestadores participam da definição"
               dados={analisePrestadoresParticipam}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[6].coluna}
             />
             <PerguntaCompacta 
               titulo="Acordos informais entre municípios"
               dados={analiseAcordosInformais}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[7].coluna}
             />
             <PerguntaCompacta 
               titulo="Fluxos pactuados nas instâncias"
               dados={analiseFluxosPactuadosGov}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[8].coluna}
             />
             <PerguntaCompacta 
               titulo="Onde decisões são tomadas"
               dados={analiseDecisoesProblemas}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[9].coluna}
             />
             <PerguntaCompacta 
               titulo="Painéis analíticos para monitorar"
               dados={analisePaineisAnaliticos}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[10].coluna}
             />
             <PerguntaCompacta 
               titulo="Análise de filas orienta decisões"
               dados={analiseAnaliseFilas}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[11].coluna}
             />
             <PerguntaCompacta 
               titulo="Relatórios para monitoramento de filas"
               dados={analiseRelatoriosFilas}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[12].coluna}
             />
             <PerguntaCompacta 
               titulo="Comunicação direta com cidadão"
               dados={analiseComunicacaoCidadao}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[13].coluna}
             />
             <PerguntaCompacta 
               titulo="Como cidadão é informado"
               dados={analiseComoInformado}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[14].coluna}
             />
             <PerguntaCompacta 
               titulo="Confirmação prévia com cidadão"
               dados={analiseConfirmacaoPrevia}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[15].coluna}
             />
             <PerguntaCompacta 
               titulo="Cidadão consulta posição na fila"
               dados={analiseConsultaPosicaoFila}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[16].coluna}
             />
             <PerguntaCompacta 
               titulo="Canais para cancelamento/reagendamento"
               dados={analiseCanaisCancelamento}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[17].coluna}
             />
             <PerguntaCompacta 
               titulo="Canais de ouvidoria"
               dados={analiseCanaisOuvidoria}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[18].coluna}
             />
             <PerguntaCompacta 
               titulo="Informações públicas sobre tempo de espera"
               dados={analiseInfoPublicasEspera}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[19].coluna}
             />
             <PerguntaCompacta 
               titulo="Transparência sobre posição na fila"
               dados={analiseTransparenciaFila}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[20].coluna}
             />
           </div>
         </motion.div>
@@ -3473,131 +3541,151 @@ export function Analise() {
               titulo="Mapeamento da oferta nas UBS"
               dados={analiseMapeamentoUBS}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[0].coluna}
             />
             <PerguntaCompacta 
               titulo="Mapeamento da oferta especializada"
               dados={analiseMapeamentoEspecializado}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[1].coluna}
             />
             <PerguntaCompacta 
               titulo="Mapeamento da oferta de leitos"
               dados={analiseMapeamentoLeitos}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[2].coluna}
             />
             <PerguntaCompacta 
               titulo="Agendas atualizadas no sistema"
               dados={analiseAgendasAtualizadas}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[3].coluna}
             />
             <PerguntaCompacta 
               titulo="Critério para local de agendamento"
               dados={analiseCriterioAgendamentoGO}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[4].coluna}
             />
             <PerguntaCompacta 
               titulo="CNES atualizado"
               dados={analiseCNESAtualizado}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[5].coluna}
             />
             <PerguntaCompacta 
               titulo="DRS atualizado sobre ofertas"
               dados={analiseDRSAtualizado}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[6].coluna}
             />
             <PerguntaCompacta 
               titulo="Controle da distribuição de vagas"
               dados={analiseControleVagas}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[7].coluna}
             />
             <PerguntaCompacta 
               titulo="Agendas dos prestadores integradas"
               dados={analiseAgendasIntegradas}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[8].coluna}
             />
             <PerguntaCompacta 
               titulo="Remanejamento de vagas"
               dados={analiseRemanejamentoVagas}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[9].coluna}
             />
             <PerguntaCompacta 
               titulo="Oferta integrada à grade RRAS"
               dados={analiseOfertaIntegradaRRAS}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[10].coluna}
             />
             <PerguntaCompacta 
               titulo="Oferta pactuada regionalmente"
               dados={analiseOfertaPactuada}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[11].coluna}
             />
             <PerguntaCompacta 
               titulo="Coordenação do repatriamento"
               dados={analiseCoordenaRepatriamento}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[12].coluna}
             />
             <PerguntaCompacta 
               titulo="Oferta atende à demanda"
               dados={analiseOfertaAtendeDemanda}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[13].coluna}
             />
             <PerguntaCompacta 
               titulo="Especialidades com fila crítica (>6 meses)"
               dados={analiseFilaCritica}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[14].coluna}
             />
             <PerguntaCompacta 
               titulo="Vazios assistenciais na região"
               dados={analiseVaziosAssistenciais}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[15].coluna}
             />
             <PerguntaCompacta 
               titulo="Leitos hospitalares suficientes"
               dados={analiseLeitosSuficientes}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[16].coluna}
             />
             <PerguntaCompacta 
               titulo="Mecanismos quando produção não executada"
               dados={analiseMecanismosGestao}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[17].coluna}
             />
             <PerguntaCompacta 
               titulo="Estratégias para ampliação da oferta"
               dados={analiseEstrategiasAmpliacao}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[18].coluna}
             />
             <PerguntaCompacta 
               titulo="Estratégias quando não há oferta"
               dados={analiseEstrategiasSemOferta}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[19].coluna}
             />
             <PerguntaCompacta 
               titulo="Monitoramento de prestadores"
               dados={analiseMonitoramentoPrestadores}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[20].coluna}
             />
             <PerguntaCompacta 
               titulo="Envio de dados para RNDS"
               dados={analiseEnvioRNDS}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[21].coluna}
             />
             <PerguntaCompacta 
               titulo="Tempo médio para análise"
               dados={analiseTempoAnalise}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[22].coluna}
             />
             <PerguntaCompacta 
               titulo="Apoio ao transporte do paciente"
               dados={analiseApoioTransporte}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[23].coluna}
             />
             <PerguntaCompacta 
               titulo="Transporte suficiente"
               dados={analiseTransporteSuficiente}
               corIndex={0}
-            />
-            <PerguntaCompacta 
-              titulo="Gestão exclusiva para própria população"
-              dados={analiseGestaoPropria}
-              corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[24].coluna}
             />
           </div>
         </motion.div>
@@ -3621,16 +3709,19 @@ export function Analise() {
               titulo="Sistemas de regulação utilizados"
               dados={analiseSistemasDRS}
               corIndex={0}
+              perguntaCompleta="Quais sistemas de regulação são utilizados no DRS?"
             />
             <PerguntaCompacta 
               titulo="Acesso ao SIRESP"
               dados={analiseAcessoSIRESP}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA_DRS[1].coluna}
             />
             <PerguntaCompacta 
               titulo="Formato de integração de sistemas"
               dados={analiseIntegracaoSistemasDRS}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA_DRS[2].coluna}
             />
           </div>
         </motion.div>
@@ -3654,51 +3745,61 @@ export function Analise() {
               titulo="Diretrizes regionais para ordenação"
               dados={analiseDiretrizesRegionais}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO_DRS[0].coluna}
             />
             <PerguntaCompacta 
               titulo="DRS participa da definição de fluxos"
               dados={analiseFluxosDRS}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO_DRS[1].coluna}
             />
             <PerguntaCompacta 
               titulo="Espaços de governança regionais"
               dados={analiseEspacosGovernanca}
               corIndex={2}
+              perguntaCompleta="Existem espaços formais de governança da regulação do acesso na região?"
             />
             <PerguntaCompacta 
               titulo="Fluxos regionais formalizados"
               dados={analiseFluxosFormalizados}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO_DRS[3].coluna}
             />
             <PerguntaCompacta 
               titulo="Articulação APS com regulação"
               dados={analiseArticulacaoAPS}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO_DRS[4].coluna}
             />
             <PerguntaCompacta 
               titulo="Organização das solicitações municipais"
               dados={analiseSolicitacoesMunicipais}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO_DRS[5].coluna}
             />
             <PerguntaCompacta 
               titulo="Regulação de internações de urgência"
               dados={analiseRegulacaoInternacoes}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO_DRS[6].coluna}
             />
             <PerguntaCompacta 
               titulo="Protocolo regional para vaga zero"
               dados={analiseProtocoloVagaZero}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO_DRS[7].coluna}
             />
             <PerguntaCompacta 
               titulo="Papel do DRS na dificuldade ambulatorial"
               dados={analisePapelDRSAmbulatorial}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO_DRS[8].coluna}
             />
             <PerguntaCompacta 
               titulo="Papel do DRS na dificuldade hospitalar"
               dados={analisePapelDRSHospitalar}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_ORDENACAO_DRS[9].coluna}
             />
           </div>
         </motion.div>
@@ -3722,36 +3823,43 @@ export function Analise() {
               titulo="Protocolos regionais ambulatorial/hospitalar eletiva"
               dados={analiseProtocolosAmbulatorialDRS}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO_DRS[0].coluna}
             />
             <PerguntaCompacta 
               titulo="Protocolos regionais urgências/emergência"
               dados={analiseProtocolosUrgenciaDRS}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO_DRS[1].coluna}
             />
             <PerguntaCompacta 
               titulo="Critérios de priorização baseados em"
               dados={analiseCriteriosBaseadosDRS}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO_DRS[2].coluna}
             />
             <PerguntaCompacta 
               titulo="Critérios usados de forma homogênea"
               dados={analiseCriteriosHomogeneosDRS}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO_DRS[3].coluna}
             />
             <PerguntaCompacta 
               titulo="DRS participa da construção de protocolos"
               dados={analiseDRSParticipaProtocolos}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO_DRS[4].coluna}
             />
             <PerguntaCompacta 
               titulo="DRS monitora aplicação dos critérios"
               dados={analiseDRSMonitoraPriorizacao}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO_DRS[5].coluna}
             />
             <PerguntaCompacta 
               titulo="Mecanismos de revisão/auditoria"
               dados={analiseMecanismosRevisaoDRS}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO_DRS[6].coluna}
             />
           </div>
         </motion.div>
@@ -3775,36 +3883,43 @@ export function Analise() {
               titulo="Mapeamento da oferta de serviços"
               dados={analiseMapeamentoOfertaDRS}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[0].coluna}
             />
             <PerguntaCompacta 
               titulo="Etapas de gestão de contratos"
               dados={analiseEtapasGestaoContratos}
               corIndex={1}
+              perguntaCompleta="O DRS atua em quais etapas da gestão de contratos com prestadores de serviços de saúde?"
             />
             <PerguntaCompacta 
               titulo="Organização das ofertas entre municípios"
               dados={analiseOrganizacaoOfertas}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[2].coluna}
             />
             <PerguntaCompacta 
               titulo="Monitoramento de tempos de espera"
               dados={analiseMonitoraTemposEspera}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[3].coluna}
             />
             <PerguntaCompacta 
               titulo="Mecanismo de redistribuição de vagas"
               dados={analiseMecanismoRedistribuicao}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[4].coluna}
             />
             <PerguntaCompacta 
               titulo="Monitoramento da dependência assistencial"
               dados={analiseMonitoraDependencia}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[5].coluna}
             />
             <PerguntaCompacta 
               titulo="Análise da dependência assistencial"
               dados={analiseAnaliseDependencia}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA_DRS[6].coluna}
             />
           </div>
         </motion.div>
@@ -3828,41 +3943,49 @@ export function Analise() {
               titulo="Regulação é pauta regular na CIR"
               dados={analisePautaCIR}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA_DRS[0].coluna}
             />
             <PerguntaCompacta 
               titulo="Tratamento de conflitos de acesso"
               dados={analiseConflitosAcesso}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA_DRS[1].coluna}
             />
             <PerguntaCompacta 
               titulo="DRS monitora indicadores de regulação"
               dados={analiseMonitoraIndicadores}
               corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA_DRS[2].coluna}
             />
             <PerguntaCompacta 
               titulo="Dados utilizados no planejamento regional"
               dados={analiseDadosPlanejamento}
               corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA_DRS[3].coluna}
             />
             <PerguntaCompacta 
               titulo="Grau de organização da regulação"
               dados={analiseGrauOrganizacao}
               corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA_DRS[4].coluna}
             />
             <PerguntaCompacta 
               titulo="Deliberações do CEGRAS resultam em mudanças"
               dados={analiseDeliberacoesCEGRAS}
               corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA_DRS[5].coluna}
             />
             <PerguntaCompacta 
               titulo="Impacto das demandas judiciais"
               dados={analiseImpactoJudiciais}
               corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA_DRS[6].coluna}
             />
             <PerguntaCompacta 
               titulo="Tratamento das demandas judiciais"
               dados={analiseTratamentoJudiciais}
               corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA_DRS[7].coluna}
             />
           </div>
         </motion.div>

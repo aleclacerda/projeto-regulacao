@@ -56,5 +56,7 @@ export interface MunicipioDuplicado {
     timestamp: string;
     nomeRespondente: string;
     instituicao: string;
+    email: string;
+    cargo: string;
   }[];
 }

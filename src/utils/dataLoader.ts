@@ -10,6 +10,15 @@ export function normalizeNome(nome: string): string {
     .trim();
 }
 
+// Normaliza nomes de DRS para garantir correspondência entre CSV e GeoJSON
+// Corrige diferenças de espaçamento como "DRS III- Araraquara" vs "DRS III - Araraquara"
+export function normalizeDRS(drs: string): string {
+  return drs
+    .replace(/\s*-\s*/g, ' - ')  // Normaliza espaços ao redor do hífen
+    .replace(/\s+/g, ' ')         // Remove espaços duplicados
+    .trim();
+}
+
 export interface GeoJSONFeature {
   type: string;
   properties: {
@@ -212,6 +221,7 @@ export function getMunicipiosEmAndamento(respostas: Resposta[], municipiosBase?:
 }
 
 // Retorna DRS que responderam diretamente (coluna J = 'DRS')
+// Usa normalização para garantir correspondência entre CSV e GeoJSON
 export function getDRSRespondidas(respostas: Resposta[]): Set<string> {
   const drsRespondidas = new Set<string>();
   
@@ -219,7 +229,7 @@ export function getDRSRespondidas(respostas: Resposta[]): Set<string> {
     // Verifica se a instituição é DRS e a resposta está completa
     if (resposta.complete && resposta.instituicao === 'DRS') {
       if (resposta.drs) {
-        drsRespondidas.add(resposta.drs);
+        drsRespondidas.add(normalizeDRS(resposta.drs));
       }
     }
   }
@@ -234,8 +244,9 @@ export function getDRSEmAndamento(respostas: Resposta[]): Set<string> {
   
   for (const resposta of respostas) {
     if (!resposta.complete && resposta.instituicao === 'DRS' && resposta.recordId) {
-      if (resposta.drs && !drsCompletas.has(resposta.drs)) {
-        drsEmAndamento.add(resposta.drs);
+      const drsNormalizada = resposta.drs ? normalizeDRS(resposta.drs) : '';
+      if (drsNormalizada && !drsCompletas.has(drsNormalizada)) {
+        drsEmAndamento.add(drsNormalizada);
       }
     }
   }
@@ -293,8 +304,9 @@ export function getMunicipiosRespondidos(respostas: Resposta[], municipiosBase?:
 }
 
 // Detecta municípios que responderam mais de uma vez (duplicados)
+// Não considera duplicado quando um é de Município e outro é de DRS
 export function getMunicipiosDuplicados(respostas: Resposta[]): MunicipioDuplicado[] {
-  const municipioRespostas = new Map<string, { recordId: string; timestamp: string; nomeRespondente: string; instituicao: string }[]>();
+  const municipioRespostas = new Map<string, { recordId: string; timestamp: string; nomeRespondente: string; instituicao: string; email: string; cargo: string }[]>();
   
   // Agrupar respostas por município (apenas completas)
   for (const resposta of respostas) {
@@ -308,19 +320,51 @@ export function getMunicipiosDuplicados(respostas: Resposta[]): MunicipioDuplica
           recordId: resposta.recordId,
           timestamp: resposta.timestamp,
           nomeRespondente: resposta.nomeRespondente,
-          instituicao: resposta.instituicao
+          instituicao: resposta.instituicao,
+          email: resposta.email,
+          cargo: resposta.cargo
         });
       }
     }
   }
   
-  // Filtrar apenas os que têm mais de uma resposta
+  // Filtrar apenas os que têm mais de uma resposta da MESMA instituição
+  // Não considerar duplicado quando um é Município e outro é DRS
   const duplicados: MunicipioDuplicado[] = [];
   for (const [municipio, respostasArr] of municipioRespostas) {
     if (respostasArr.length > 1) {
+      // Verificar se todas as respostas são do mesmo tipo de instituição
+      const instituicoes = new Set(respostasArr.map(r => r.instituicao));
+      
+      // Se tem tanto Município quanto DRS, não é duplicado real
+      if (instituicoes.has('Municipio') && instituicoes.has('DRS')) {
+        continue;
+      }
+      
+      // Ordenar por timestamp (mais recente primeiro)
+      const respostasOrdenadas = [...respostasArr].sort((a, b) => {
+        const parseDate = (ts: string) => {
+          if (!ts) return new Date(0);
+          // Formato: "3/24/2026 14:13" ou similar
+          const parts = ts.split(' ');
+          if (parts.length < 2) return new Date(0);
+          const dateParts = parts[0].split('/');
+          const timeParts = parts[1].split(':');
+          if (dateParts.length < 3) return new Date(0);
+          return new Date(
+            parseInt(dateParts[2]), // ano
+            parseInt(dateParts[0]) - 1, // mês (0-indexed)
+            parseInt(dateParts[1]), // dia
+            parseInt(timeParts[0] || '0'),
+            parseInt(timeParts[1] || '0')
+          );
+        };
+        return parseDate(b.timestamp).getTime() - parseDate(a.timestamp).getTime();
+      });
+      
       duplicados.push({
         municipio,
-        respostas: respostasArr
+        respostas: respostasOrdenadas
       });
     }
   }
@@ -395,11 +439,12 @@ export function calcularKPIs(
     respondidos.has(normalizeNome(m.nome))
   );
   
-  const drsSet = new Set(municipiosFiltrados.map(m => m.drs));
+  const drsSet = new Set(municipiosFiltrados.map(m => normalizeDRS(m.drs)));
   const rrasSet = new Set(municipiosFiltrados.map(m => m.rras));
   const regiaoSaudeSet = new Set(municipiosFiltrados.map(m => m.regiaoSaude).filter(r => r));
   
   // DRS é completa quando: a DRS respondeu diretamente (coluna J = 'DRS')
+  // Usa normalização para garantir correspondência entre CSV e GeoJSON
   const drsCompletas = [...drsSet].filter(drs => drsRespondidas.has(drs));
   
   // RRAS só é coberta quando 100% dos municípios responderam
@@ -458,4 +503,79 @@ export function getMunicipiosPendentes(
   const respondidos = getMunicipiosRespondidos(respostas, municipios);
   
   return municipiosFiltrados.filter(m => !respondidos.has(normalizeNome(m.nome)));
+}
+
+// Interface para formulários incompletos
+export interface FormularioIncompleto {
+  recordId: string;
+  nome: string;
+  cargo: string;
+  email: string;
+  telefone: string;
+  instituicao: string;
+  drs: string;
+  municipios: string[];
+  timestamp: string;
+}
+
+// Retorna detalhes dos formulários incompletos (para página de gestão)
+export function getFormulariosIncompletos(respostas: Resposta[]): FormularioIncompleto[] {
+  return respostas
+    .filter(r => !r.complete && r.recordId && r.instituicao)
+    .map(r => ({
+      recordId: r.recordId,
+      nome: r.nomeRespondente,
+      cargo: r.cargo,
+      email: r.email,
+      telefone: r.telefone,
+      instituicao: r.instituicao,
+      drs: r.drs,
+      municipios: r.municipiosRespondidos,
+      timestamp: r.timestamp
+    }))
+    .sort((a, b) => {
+      // Ordenar por timestamp decrescente
+      const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return dateB - dateA;
+    });
+}
+
+// Retorna municípios únicos com formulários incompletos
+export function getMunicipiosIncompletos(respostas: Resposta[], municipiosBase?: Municipio[]): Set<string> {
+  const incompletos = new Set<string>();
+  const completos = getMunicipiosRespondidos(respostas, municipiosBase);
+  
+  const municipiosValidos = municipiosBase 
+    ? new Set(municipiosBase.map(m => normalizeNome(m.nome)))
+    : null;
+  
+  for (const resposta of respostas) {
+    if (!resposta.complete && resposta.recordId && resposta.instituicao === 'Municipio') {
+      for (const municipio of resposta.municipiosRespondidos) {
+        const normalizado = normalizeNome(municipio);
+        if (!completos.has(normalizado) && (!municipiosValidos || municipiosValidos.has(normalizado))) {
+          incompletos.add(normalizado);
+        }
+      }
+    }
+  }
+  
+  return incompletos;
+}
+
+// Retorna DRS únicas com formulários incompletos
+export function getDRSIncompletas(respostas: Resposta[]): Set<string> {
+  const incompletas = new Set<string>();
+  const completas = getDRSRespondidas(respostas);
+  
+  for (const resposta of respostas) {
+    if (!resposta.complete && resposta.recordId && resposta.instituicao === 'DRS') {
+      if (resposta.drs && !completas.has(resposta.drs)) {
+        incompletas.add(resposta.drs);
+      }
+    }
+  }
+  
+  return incompletas;
 }

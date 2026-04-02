@@ -17,22 +17,27 @@ import {
   X,
   AlertCircle
 } from 'lucide-react';
-import { loadMunicipios, loadRespostas, calcularKPIs, getDataAtualizacao, getMunicipiosDuplicados } from '../utils/dataLoader';
+import { loadMunicipios, loadRespostas, calcularKPIs, getDataAtualizacao, getMunicipiosDuplicados, getMunicipiosIncompletos, getDRSIncompletas, getDRSRespondidas } from '../utils/dataLoader';
 
 export function Home() {
   const [stats, setStats] = useState({
     totalMunicipios: 0,
     municipiosRespondidos: 0,
+    municipiosIncompletos: 0,
     percentualRespondido: 0,
     totalDRS: 0,
     drsCompletas: 0,
+    drsIncompletas: 0,
     percentualDRS: 0,
+    totalQuestionarios: 0,
+    totalLinhasCSV: 0,
+    semInstituicao: 0,
+    duplicados: 0,
     respostasCompletas: 0,
     respostasEmAndamento: 0,
     emAndamentoComMunicipio: 0,
     emAndamentoSemMunicipio: 0,
     emAndamentoSemInstituicao: 0,
-    totalQuestionarios: 0,
     percentualQuestionarios: 0
   });
   const [loading, setLoading] = useState(true);
@@ -59,20 +64,21 @@ export function Home() {
         const duplicados = getMunicipiosDuplicados(respostas);
         const totalDuplicados = duplicados.reduce((acc, d) => acc + (d.respostas.length - 1), 0);
         
+        // Contar municípios e DRS incompletos (únicos)
+        const municipiosIncompletosSet = getMunicipiosIncompletos(respostas, municipios);
+        const drsIncompletasSet = getDRSIncompletas(respostas);
+        const drsCompletasSet = getDRSRespondidas(respostas);
+        
         // Contar apenas respostas de Município ou DRS (ignorar outras instituições)
         const completasMunicipios = respostas.filter(r => r.complete && r.instituicao === 'Municipio').length;
         const completasDRS = respostas.filter(r => r.complete && r.instituicao === 'DRS').length;
         const completasTotal = completasMunicipios + completasDRS;
         const completasSemDuplicados = completasTotal - totalDuplicados;
         
-        // Log para identificar respostas com instituição diferente de Municipio/DRS
-        const respostasOutras = respostas.filter(r => r.complete && r.instituicao !== 'Municipio' && r.instituicao !== 'DRS');
-        if (respostasOutras.length > 0) {
-          console.warn('⚠️ Respostas completas com instituição diferente de Municipio/DRS:');
-          respostasOutras.forEach(r => {
-            console.warn(`  ID: ${r.recordId} | Instituição: "${r.instituicao}" | Respondente: ${r.nomeRespondente}`);
-          });
-        }
+        // Contar todos os sem instituição (para estatísticas)
+        const todosSemInstituicao = respostas.filter(r => 
+          r.recordId && r.instituicao !== 'Municipio' && r.instituicao !== 'DRS'
+        );
         
         // Em andamento: separar os que têm município/DRS preenchido dos que não têm
         const abertosComMunicipio = respostas.filter(r => 
@@ -113,13 +119,23 @@ export function Home() {
         const totalQ = completasSemDuplicados + emAndamento;
         
         setStats({
-          ...kpis,
+          totalMunicipios: kpis.totalMunicipios,
+          municipiosRespondidos: kpis.municipiosRespondidos,
+          municipiosIncompletos: municipiosIncompletosSet.size,
+          percentualRespondido: kpis.percentualRespondido,
+          totalDRS: kpis.totalDRS,
+          drsCompletas: drsCompletasSet.size,
+          drsIncompletas: drsIncompletasSet.size,
+          percentualDRS: kpis.totalDRS > 0 ? (drsCompletasSet.size / kpis.totalDRS) * 100 : 0,
+          totalQuestionarios: totalQ,
+          totalLinhasCSV: respostas.length,
+          semInstituicao: todosSemInstituicao.length,
+          duplicados: totalDuplicados,
           respostasCompletas: completasSemDuplicados,
           respostasEmAndamento: emAndamento,
           emAndamentoComMunicipio: abertosComMunicipio.length,
           emAndamentoSemMunicipio: abertosSemMunicipio.length,
           emAndamentoSemInstituicao: abertosSemInstituicao.length,
-          totalQuestionarios: totalQ,
           percentualQuestionarios: totalQ > 0 ? (completasSemDuplicados / totalQ) * 100 : 0
         });
       } catch (err) {
@@ -357,13 +373,17 @@ export function Home() {
           </div>
           <p className="text-3xl font-bold text-emerald-600">{loading ? '...' : stats.municipiosRespondidos}</p>
           <p className="text-sm text-slate-500 mt-1">Municípios Respondidos</p>
-          <div className="mt-3 w-full bg-emerald-100 rounded-full h-2">
-            <div 
-              className="bg-emerald-500 h-2 rounded-full transition-all duration-1000"
-              style={{ width: `${loading ? 0 : stats.percentualRespondido}%` }}
-            />
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="bg-emerald-50 rounded-lg p-2 text-center">
+              <p className="text-lg font-bold text-emerald-600">{loading ? '...' : stats.municipiosRespondidos}</p>
+              <p className="text-xs text-emerald-700">Completos</p>
+            </div>
+            <div className="bg-amber-50 rounded-lg p-2 text-center">
+              <p className="text-lg font-bold text-amber-600">{loading ? '...' : stats.municipiosIncompletos}</p>
+              <p className="text-xs text-amber-700">Incompletos</p>
+            </div>
           </div>
-          <p className="text-xs text-slate-400 mt-1 text-right">de {loading ? '...' : stats.totalMunicipios}</p>
+          <p className="text-xs text-slate-400 mt-2 text-right">de {loading ? '...' : stats.totalMunicipios}</p>
         </motion.div>
 
         {/* DRS Respondidos */}
@@ -379,53 +399,43 @@ export function Home() {
           </div>
           <p className="text-3xl font-bold text-violet-600">{loading ? '...' : stats.drsCompletas}</p>
           <p className="text-sm text-slate-500 mt-1">DRS Respondidos</p>
-          <div className="mt-3 w-full bg-violet-100 rounded-full h-2">
-            <div 
-              className="bg-violet-500 h-2 rounded-full transition-all duration-1000"
-              style={{ width: `${loading ? 0 : stats.percentualDRS}%` }}
-            />
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="bg-violet-50 rounded-lg p-2 text-center">
+              <p className="text-lg font-bold text-violet-600">{loading ? '...' : stats.drsCompletas}</p>
+              <p className="text-xs text-violet-700">Completos</p>
+            </div>
+            <div className="bg-amber-50 rounded-lg p-2 text-center">
+              <p className="text-lg font-bold text-amber-600">{loading ? '...' : stats.drsIncompletas}</p>
+              <p className="text-xs text-amber-700">Incompletos</p>
+            </div>
           </div>
-          <p className="text-xs text-slate-400 mt-1 text-right">de {loading ? '...' : stats.totalDRS}</p>
+          <p className="text-xs text-slate-400 mt-2 text-right">de {loading ? '...' : stats.totalDRS}</p>
         </motion.div>
 
-        {/* Questionários - Completos e Abertos */}
+        {/* Questionários - Total */}
         <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
             <div className="bg-gradient-to-br from-cyan-500 to-teal-600 p-3 rounded-xl">
               <FileText className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xs font-medium text-cyan-600 bg-cyan-50 px-2 py-1 rounded-full">Únicos</span>
+            <span className="text-xs font-medium text-cyan-600 bg-cyan-50 px-2 py-1 rounded-full">{loading ? '...' : stats.totalLinhasCSV} linhas</span>
           </div>
-          <p className="text-3xl font-bold text-cyan-600">{loading ? '...' : stats.totalQuestionarios}</p>
-          <p className="text-sm text-slate-500 mt-1">Questionários</p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className="bg-emerald-50 rounded-lg p-2 text-center">
-              <p className="text-lg font-bold text-emerald-600">{loading ? '...' : stats.respostasCompletas}</p>
-              <p className="text-xs text-emerald-700">Completos</p>
+          <p className="text-3xl font-bold text-cyan-600">{loading ? '...' : stats.respostasCompletas}</p>
+          <p className="text-sm text-slate-500 mt-1">Questionários Completos</p>
+          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+            <div className="bg-cyan-50 rounded-lg p-1.5">
+              <p className="text-sm font-bold text-cyan-600">{loading ? '...' : stats.totalQuestionarios}</p>
+              <p className="text-[10px] text-cyan-700">Válidos</p>
             </div>
-            <button 
-              onClick={() => setShowAbertosModal(true)}
-              className="bg-amber-50 rounded-lg p-2 text-center hover:bg-amber-100 transition-colors cursor-pointer w-full"
-            >
-              <p className="text-lg font-bold text-amber-600">{loading ? '...' : stats.respostasEmAndamento}</p>
-              <p className="text-xs text-amber-700">Abertos</p>
-            </button>
+            <div className="bg-amber-50 rounded-lg p-1.5">
+              <p className="text-sm font-bold text-amber-600">{loading ? '...' : stats.duplicados}</p>
+              <p className="text-[10px] text-amber-700">Duplicados</p>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-1.5">
+              <p className="text-sm font-bold text-slate-500">{loading ? '...' : stats.semInstituicao}</p>
+              <p className="text-[10px] text-slate-600">Sem Inst.</p>
+            </div>
           </div>
-          {stats.respostasEmAndamento > 0 && (
-            <button 
-              onClick={() => setShowAbertosModal(true)}
-              className="mt-2 flex items-center justify-center gap-3 text-[10px] w-full hover:bg-slate-50 rounded-lg py-1 transition-colors"
-            >
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                <span className="text-slate-500">{stats.emAndamentoComMunicipio} identificados</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                <span className="text-slate-500">{stats.emAndamentoSemMunicipio + stats.emAndamentoSemInstituicao} não identificados</span>
-              </span>
-            </button>
-          )}
         </motion.div>
 
         {/* Municípios Pendentes */}

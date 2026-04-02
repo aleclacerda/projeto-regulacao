@@ -13,7 +13,8 @@ import {
   getDRSRespondidas,
   getDRSEmAndamento,
   getMunicipiosDuplicados,
-  normalizeNome
+  normalizeNome,
+  normalizeDRS
 } from '../utils/dataLoader';
 import type { Municipio, Resposta, MunicipioDuplicado } from '../types';
 
@@ -88,8 +89,9 @@ export function BuscaAtiva() {
     const respondidos = municipiosFiltrados.filter(m => 
       m.drs === drs && respondidosSet.has(normalizeNome(m.nome))
     ).length;
-    const isDRSRespondida = drsRespondidasSet.has(drs);
-    const isDRSEmAndamento = drsEmAndamentoSet.has(drs);
+    const drsNormalizada = normalizeDRS(drs);
+    const isDRSRespondida = drsRespondidasSet.has(drsNormalizada);
+    const isDRSEmAndamento = drsEmAndamentoSet.has(drsNormalizada);
     return { 
       drs, 
       total, 
@@ -222,14 +224,9 @@ export function BuscaAtiva() {
       municipiosFiltrados.map(m => normalizeNome(m.nome))
     );
 
-    // Função auxiliar para calcular série de uma instituição
-    const calcularSerie = (instituicao: 'Municipio' | 'DRS' | 'todos') => {
-      const respostasFiltradas = respostas.filter(r => {
-        if (!r.complete) return false;
-        if (instituicao === 'Municipio') return r.instituicao === 'Municipio';
-        if (instituicao === 'DRS') return r.instituicao === 'DRS';
-        return r.instituicao === 'Municipio' || r.instituicao === 'DRS';
-      });
+    // Calcular série de municípios
+    const calcularSerieMunicipios = () => {
+      const respostasFiltradas = respostas.filter(r => r.complete && r.instituicao === 'Municipio');
 
       const respostasOrdenadas = [...respostasFiltradas].sort((a, b) => {
         const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
@@ -253,7 +250,6 @@ export function BuscaAtiva() {
         let novosNesteDia = 0;
         for (const municipio of resposta.municipiosRespondidos) {
           const normalizado = normalizeNome(municipio);
-          // Só conta se o município está nos filtros selecionados
           if (!municipiosContados.has(normalizado) && municipiosValidosSet.has(normalizado)) {
             municipiosContados.add(normalizado);
             novosNesteDia++;
@@ -268,9 +264,42 @@ export function BuscaAtiva() {
       return porDia;
     };
 
+    // Calcular série de DRS (conta DRS únicas, não municípios)
+    const calcularSerieDRS = () => {
+      const respostasFiltradas = respostas.filter(r => r.complete && r.instituicao === 'DRS' && r.drs);
+
+      const respostasOrdenadas = [...respostasFiltradas].sort((a, b) => {
+        const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return dateA - dateB;
+      });
+
+      const drsContadas = new Set<string>();
+      const porDia: Record<string, number> = {};
+
+      for (const resposta of respostasOrdenadas) {
+        if (!resposta.timestamp || !resposta.drs) continue;
+        
+        const dataMatch = resposta.timestamp.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (!dataMatch) continue;
+        const mes = dataMatch[1].padStart(2, '0');
+        const diaNum = dataMatch[2].padStart(2, '0');
+        const ano = dataMatch[3];
+        const dia = `${ano}-${mes}-${diaNum}`;
+
+        // Conta DRS única (não duplicada)
+        if (!drsContadas.has(resposta.drs)) {
+          drsContadas.add(resposta.drs);
+          porDia[dia] = (porDia[dia] || 0) + 1;
+        }
+      }
+
+      return porDia;
+    };
+
     // Calcular séries separadas
-    const serieMunicipios = calcularSerie('Municipio');
-    const serieDRS = calcularSerie('DRS');
+    const serieMunicipios = calcularSerieMunicipios();
+    const serieDRS = calcularSerieDRS();
     
     // Obter todos os dias únicos
     const todosDias = [...new Set([...Object.keys(serieMunicipios), ...Object.keys(serieDRS)])].sort();
@@ -304,8 +333,9 @@ export function BuscaAtiva() {
 
   // Função para determinar status da DRS
   const getStatusDRS = (drs: string): 'respondido' | 'em_andamento' | 'pendente' => {
-    if (drsRespondidasSet.has(drs)) return 'respondido';
-    if (drsEmAndamentoSet.has(drs)) return 'em_andamento';
+    const drsNormalizada = normalizeDRS(drs);
+    if (drsRespondidasSet.has(drsNormalizada)) return 'respondido';
+    if (drsEmAndamentoSet.has(drsNormalizada)) return 'em_andamento';
     return 'pendente';
   };
 

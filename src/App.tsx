@@ -4,6 +4,7 @@ import { Home } from './pages/Home';
 import { BuscaAtiva } from './pages/BuscaAtiva';
 import { Analise } from './pages/Analise';
 import BaseDados from './pages/BaseDados';
+import { FormulariosIncompletos } from './pages/FormulariosIncompletos';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="/busca-ativa" element={<BuscaAtiva />} />
           <Route path="/analise" element={<Analise />} />
           <Route path="/base-dados" element={<BaseDados />} />
+          <Route path="/formularios-incompletos" element={<FormulariosIncompletos />} />
         </Routes>
       </Layout>
     </HashRouter>
