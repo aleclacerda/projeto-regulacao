@@ -84,6 +84,18 @@ export function getPorteDescricao(porte: PortePopulacional): string {
   }
 }
 
+// Interface para dados completos de município com região
+export interface MunicipioCompleto {
+  codigo: string;
+  nome: string;
+  nomeNormalizado: string;
+  populacao: number;
+  porte: PortePopulacional;
+  rras: string;
+  drs: string;
+  regiaoSaude: string;
+}
+
 // Carrega dados de população do reg_sp.csv
 export async function loadPopulacaoMunicipios(): Promise<Map<string, MunicipioPopulacao>> {
   const response = await fetch('/data/reg_sp.csv');
@@ -119,6 +131,102 @@ export async function loadPopulacaoMunicipios(): Promise<Map<string, MunicipioPo
       }
     });
   });
+}
+
+// Carrega dados completos de municípios com região e porte
+export async function loadMunicipiosCompletos(): Promise<MunicipioCompleto[]> {
+  const response = await fetch('/data/reg_sp.csv');
+  const buffer = await response.arrayBuffer();
+  const decoder = new TextDecoder('windows-1252');
+  const text = decoder.decode(buffer);
+  
+  return new Promise((resolve) => {
+    Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const municipios: MunicipioCompleto[] = [];
+        
+        for (const row of results.data as Record<string, string>[]) {
+          const nome = row['Municipio'] || '';
+          const populacaoStr = row['População 2025 (censo 2022)'] || row['Populacao 2025 (censo 2022)'] || '0';
+          const populacao = parseInt(populacaoStr.replace(/\D/g, ''), 10) || 0;
+          const codigo = row['Codigo Municipio'] || '';
+          const rras = row['RRAS'] || '';
+          const drs = row['DRS'] || '';
+          const regiaoSaude = row['Regiao de Saude'] || '';
+          
+          if (nome && populacao > 0) {
+            municipios.push({
+              codigo,
+              nome,
+              nomeNormalizado: normalizeNome(nome),
+              populacao,
+              porte: classificarPorte(populacao),
+              rras,
+              drs,
+              regiaoSaude
+            });
+          }
+        }
+        
+        resolve(municipios);
+      }
+    });
+  });
+}
+
+// Interface para estatísticas por região
+export interface EstatisticasRegiao {
+  nome: string;
+  total: {
+    pequeno_i: number;
+    pequeno_ii: number;
+    medio: number;
+    grande: number;
+    total: number;
+  };
+  respondidos: {
+    pequeno_i: number;
+    pequeno_ii: number;
+    medio: number;
+    grande: number;
+    total: number;
+  };
+}
+
+// Calcula estatísticas por região (RRAS, DRS ou Região de Saúde)
+export function calcularEstatisticasPorRegiao(
+  municipios: MunicipioCompleto[],
+  respondidos: Set<string>,
+  tipoRegiao: 'rras' | 'drs' | 'regiaoSaude'
+): EstatisticasRegiao[] {
+  const estatisticasMap = new Map<string, EstatisticasRegiao>();
+  
+  for (const municipio of municipios) {
+    const regiao = municipio[tipoRegiao];
+    if (!regiao) continue;
+    
+    if (!estatisticasMap.has(regiao)) {
+      estatisticasMap.set(regiao, {
+        nome: regiao,
+        total: { pequeno_i: 0, pequeno_ii: 0, medio: 0, grande: 0, total: 0 },
+        respondidos: { pequeno_i: 0, pequeno_ii: 0, medio: 0, grande: 0, total: 0 }
+      });
+    }
+    
+    const stats = estatisticasMap.get(regiao)!;
+    stats.total[municipio.porte]++;
+    stats.total.total++;
+    
+    if (respondidos.has(municipio.nomeNormalizado)) {
+      stats.respondidos[municipio.porte]++;
+      stats.respondidos.total++;
+    }
+  }
+  
+  // Ordenar por nome da região
+  return Array.from(estatisticasMap.values()).sort((a, b) => a.nome.localeCompare(b.nome));
 }
 
 export async function loadMunicipios(): Promise<Municipio[]> {
