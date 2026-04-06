@@ -48,6 +48,79 @@ export async function loadGeoJSON(): Promise<GeoJSONData> {
   return response.json();
 }
 
+// Tipos para porte populacional
+export type PortePopulacional = 'pequeno_i' | 'pequeno_ii' | 'medio' | 'grande';
+
+export interface MunicipioPopulacao {
+  codigo: string;
+  nome: string;
+  populacao: number;
+  porte: PortePopulacional;
+}
+
+// Classificação por porte populacional
+export function classificarPorte(populacao: number): PortePopulacional {
+  if (populacao <= 20000) return 'pequeno_i';
+  if (populacao <= 50000) return 'pequeno_ii';
+  if (populacao <= 100000) return 'medio';
+  return 'grande';
+}
+
+export function getPorteLabel(porte: PortePopulacional): string {
+  switch (porte) {
+    case 'pequeno_i': return 'Pequeno Porte I';
+    case 'pequeno_ii': return 'Pequeno Porte II';
+    case 'medio': return 'Médio Porte';
+    case 'grande': return 'Grande Porte';
+  }
+}
+
+export function getPorteDescricao(porte: PortePopulacional): string {
+  switch (porte) {
+    case 'pequeno_i': return 'Até 20.000 hab.';
+    case 'pequeno_ii': return '20.001 a 50.000 hab.';
+    case 'medio': return '50.001 a 100.000 hab.';
+    case 'grande': return 'Mais de 100.000 hab.';
+  }
+}
+
+// Carrega dados de população do reg_sp.csv
+export async function loadPopulacaoMunicipios(): Promise<Map<string, MunicipioPopulacao>> {
+  const response = await fetch('/data/reg_sp.csv');
+  const buffer = await response.arrayBuffer();
+  const decoder = new TextDecoder('windows-1252');
+  const text = decoder.decode(buffer);
+  
+  return new Promise((resolve) => {
+    Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const populacaoMap = new Map<string, MunicipioPopulacao>();
+        
+        for (const row of results.data as Record<string, string>[]) {
+          const nome = row['Municipio'] || '';
+          const populacaoStr = row['População 2025 (censo 2022)'] || row['Populacao 2025 (censo 2022)'] || '0';
+          const populacao = parseInt(populacaoStr.replace(/\D/g, ''), 10) || 0;
+          const codigo = row['Codigo Municipio'] || '';
+          
+          if (nome && populacao > 0) {
+            const nomeNormalizado = normalizeNome(nome);
+            populacaoMap.set(nomeNormalizado, {
+              codigo,
+              nome,
+              populacao,
+              porte: classificarPorte(populacao)
+            });
+          }
+        }
+        
+        resolve(populacaoMap);
+      }
+    });
+  });
+}
+
 export async function loadMunicipios(): Promise<Municipio[]> {
   const geojson = await loadGeoJSON();
   
