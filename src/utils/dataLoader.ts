@@ -117,16 +117,9 @@ export async function loadRespostas(): Promise<Resposta[]> {
   // Ler como ArrayBuffer para decodificar corretamente
   const buffer = await response.arrayBuffer();
   
-  // Tentar decodificar como UTF-8 primeiro, se falhar usar Latin1 (ISO-8859-1)
-  let text: string;
-  try {
-    const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
-    text = utf8Decoder.decode(buffer);
-  } catch {
-    // Se UTF-8 falhar, usar Latin1 (Windows-1252)
-    const latin1Decoder = new TextDecoder('windows-1252');
-    text = latin1Decoder.decode(buffer);
-  }
+  // O arquivo CSV está em Windows-1252 (Latin1), usar esse decoder diretamente
+  const decoder = new TextDecoder('windows-1252');
+  let text = decoder.decode(buffer);
   
   // Normalizar quebras de linha
   text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
