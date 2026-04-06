@@ -95,6 +95,29 @@ export function SPMapLeaflet({ respondidos, onMunicipioClick, filteredDRS, filte
     }
   }, [municipiosCompletos, respondidos, tipoRegiao]);
 
+  // Função para comparação natural de strings (RRAS1, RRAS2, ..., RRAS10)
+  const naturalCompare = (a: string, b: string): number => {
+    const regex = /(\d+)|(\D+)/g;
+    const partsA = a.match(regex) || [];
+    const partsB = b.match(regex) || [];
+    
+    for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+      const partA = partsA[i] || '';
+      const partB = partsB[i] || '';
+      
+      const numA = parseInt(partA, 10);
+      const numB = parseInt(partB, 10);
+      
+      if (!isNaN(numA) && !isNaN(numB)) {
+        if (numA !== numB) return numA - numB;
+      } else {
+        const cmp = partA.localeCompare(partB);
+        if (cmp !== 0) return cmp;
+      }
+    }
+    return 0;
+  };
+
   // Função para ordenar estatísticas
   const estatisticasOrdenadas = [...estatisticas].sort((a, b) => {
     let valorA: number | string;
@@ -123,9 +146,8 @@ export function SPMapLeaflet({ respondidos, onMunicipioClick, filteredDRS, filte
     }
     
     if (typeof valorA === 'string' && typeof valorB === 'string') {
-      return ordenacaoDirecao === 'asc' 
-        ? valorA.localeCompare(valorB) 
-        : valorB.localeCompare(valorA);
+      const cmp = naturalCompare(valorA, valorB);
+      return ordenacaoDirecao === 'asc' ? cmp : -cmp;
     }
     
     return ordenacaoDirecao === 'asc' 
@@ -666,7 +688,7 @@ export function SPMapLeaflet({ respondidos, onMunicipioClick, filteredDRS, filte
           </div>
           
           {/* Tabela */}
-          <div className="max-h-[300px] overflow-auto">
+          <div className="overflow-auto">
             <table className="w-full text-xs">
               <thead className="bg-slate-100 sticky top-0">
                 <tr>
