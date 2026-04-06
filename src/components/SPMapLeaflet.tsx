@@ -477,6 +477,83 @@ export function SPMapLeaflet({ respondidos, onMunicipioClick, filteredDRS, filte
             </div>
           </div>
         )}
+        
+        {/* Mini gráfico de barras para modo Porte */}
+        {viewMode === 'porte' && municipiosCompletos.length > 0 && (() => {
+          const totaisPorPorte = {
+            pequeno_i: { total: 0, respondidos: 0 },
+            pequeno_ii: { total: 0, respondidos: 0 },
+            medio: { total: 0, respondidos: 0 },
+            grande: { total: 0, respondidos: 0 },
+          };
+          
+          municipiosCompletos.forEach(m => {
+            totaisPorPorte[m.porte].total++;
+            if (respondidos.has(m.nomeNormalizado)) {
+              totaisPorPorte[m.porte].respondidos++;
+            }
+          });
+          
+          const totalGeral = municipiosCompletos.length;
+          const totalRespondidos = Array.from(respondidos).length;
+          
+          const portes: Array<{ key: PortePopulacional; label: string }> = [
+            { key: 'pequeno_i', label: 'Peq. I' },
+            { key: 'pequeno_ii', label: 'Peq. II' },
+            { key: 'medio', label: 'Médio' },
+            { key: 'grande', label: 'Grande' },
+          ];
+          
+          return (
+            <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 z-[1000] min-w-[180px]">
+              <p className="text-xs font-semibold text-slate-700 mb-3">Distribuição por Porte</p>
+              <div className="space-y-2.5">
+                {portes.map(({ key, label }) => {
+                  const dados = totaisPorPorte[key];
+                  const pctTotal = totalGeral > 0 ? (dados.total / totalGeral) * 100 : 0;
+                  const pctResp = dados.total > 0 ? (dados.respondidos / dados.total) * 100 : 0;
+                  
+                  return (
+                    <div key={key} className="space-y-1">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="font-medium text-slate-600">{label}</span>
+                        <span className="text-slate-500">{dados.total} ({pctTotal.toFixed(0)}%)</span>
+                      </div>
+                      <div className="relative h-4 bg-slate-100 rounded overflow-hidden">
+                        <div 
+                          className="absolute inset-y-0 left-0 rounded transition-all"
+                          style={{ 
+                            width: `${pctTotal}%`, 
+                            backgroundColor: PORTE_COLORS[key],
+                            opacity: 0.3
+                          }}
+                        />
+                        <div 
+                          className="absolute inset-y-0 left-0 rounded transition-all"
+                          style={{ 
+                            width: `${(dados.respondidos / totalGeral) * 100}%`, 
+                            backgroundColor: PORTE_COLORS[key]
+                          }}
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center text-[9px] font-medium text-slate-700">
+                          {dados.respondidos}/{dados.total} ({pctResp.toFixed(0)}%)
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-3 pt-2 border-t border-slate-200">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="font-semibold text-slate-700">Total</span>
+                  <span className="font-semibold text-emerald-600">
+                    {totalRespondidos}/{totalGeral} ({totalGeral > 0 ? ((totalRespondidos / totalGeral) * 100).toFixed(0) : 0}%)
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
       
       {hoveredMunicipio && (
