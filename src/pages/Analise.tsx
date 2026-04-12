@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3, Filter, Network, Lock, LogOut } from 'lucide-react';
-import { loadMunicipios, loadRespostas, normalizeNome } from '../utils/dataLoader';
+import { loadMunicipios, loadRespostas, normalizeNome, normalizeDRS } from '../utils/dataLoader';
 import type { Municipio, Resposta } from '../types';
 import Papa from 'papaparse';
 
@@ -1835,6 +1835,15 @@ export function Analise() {
     
     if (selectedMunicipio) {
       return municipiosResposta.some(m => normalizeNome(m) === normalizeNome(selectedMunicipio));
+    }
+    
+    // Se é uma resposta de DRS e há filtro de DRS selecionado, verificar se a DRS corresponde
+    if (r.instituicao === 'DRS' && selectedDRS) {
+      const drsResposta = normalizeDRS(r.drs || '');
+      const drsFiltro = normalizeDRS(selectedDRS);
+      if (drsResposta === drsFiltro) {
+        return true;
+      }
     }
     
     return municipiosResposta.some(m => municipiosValidos.has(m));
