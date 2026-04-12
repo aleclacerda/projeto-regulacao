@@ -229,6 +229,63 @@ export function BuscaAtiva() {
     downloadCSV(csv, 'progresso_regiao_saude.csv');
   };
 
+  // Download das respostas completas dos municípios contabilizados (sem duplicados)
+  const downloadRespostasContabilizadas = () => {
+    // Filtrar apenas respostas de municípios completas
+    const respostasMunicipios = respostasFiltradas.filter(r => 
+      r.complete && r.instituicao === 'Municipio'
+    );
+
+    // Ordenar por timestamp (mais recente primeiro) para pegar a última resposta de cada município
+    const respostasOrdenadas = [...respostasMunicipios].sort((a, b) => {
+      const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return dateB - dateA; // Mais recente primeiro
+    });
+
+    // Municípios válidos da base
+    const municipiosValidosSet = new Set(municipios.map(m => normalizeNome(m.nome)));
+
+    // Selecionar apenas a última resposta de cada município (sem duplicados)
+    const municipiosContados = new Set<string>();
+    const respostasUnicas: Resposta[] = [];
+
+    for (const resposta of respostasOrdenadas) {
+      for (const municipio of resposta.municipiosRespondidos) {
+        const normalizado = normalizeNome(municipio);
+        // Só conta se é um município válido e ainda não foi contado
+        if (municipiosValidosSet.has(normalizado) && !municipiosContados.has(normalizado)) {
+          municipiosContados.add(normalizado);
+          respostasUnicas.push(resposta);
+          break; // Cada resposta conta apenas uma vez
+        }
+      }
+    }
+
+    if (respostasUnicas.length === 0) {
+      alert('Nenhuma resposta encontrada para download.');
+      return;
+    }
+
+    // Obter headers do primeiro registro
+    const primeiraResposta = respostasUnicas[0].respostas;
+    const headers = Object.keys(primeiraResposta);
+
+    // Criar CSV com todas as colunas originais
+    const rows = respostasUnicas.map(r => {
+      return headers.map(h => {
+        const valor = r.respostas[h] || '';
+        // Escapar aspas e envolver em aspas se contiver ; ou "
+        const valorEscapado = valor.replace(/"/g, '""');
+        return `"${valorEscapado}"`;
+      }).join(';');
+    });
+
+    const csv = [headers.map(h => `"${h}"`).join(';'), ...rows].join('\n');
+    const dataAtual = new Date().toISOString().split('T')[0];
+    downloadCSV(csv, `respostas_contabilizadas_${dataAtual}.csv`);
+  };
+
   // Série histórica por dia (respostas completas)
   const serieHistorica = (() => {
     // Municípios válidos baseados nos filtros
@@ -479,9 +536,19 @@ export function BuscaAtiva() {
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
         
         <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-5 h-5" />
-            <span className="text-teal-100 font-medium">Visão Geral do Diagnóstico</span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              <span className="text-teal-100 font-medium">Visão Geral do Diagnóstico</span>
+            </div>
+            <button
+              onClick={downloadRespostasContabilizadas}
+              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+              title="Baixar base completa das respostas contabilizadas (sem duplicados)"
+            >
+              <Download className="w-4 h-4" />
+              Baixar Respostas
+            </button>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
