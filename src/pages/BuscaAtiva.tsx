@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Building2, Network, CheckCircle2, Clock, MapPin, Users, Search, BarChart3, TrendingUp, Download } from 'lucide-react';
+import { Building2, Network, CheckCircle2, Clock, MapPin, Users, Search, BarChart3, TrendingUp, Download, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { FilterPanel } from '../components/FilterPanel';
 import { SPMapLeaflet } from '../components/SPMapLeaflet';
@@ -14,7 +14,8 @@ import {
   getDRSEmAndamento,
   getMunicipiosDuplicados,
   normalizeNome,
-  normalizeDRS
+  normalizeDRS,
+  filterRespostasByPeriod
 } from '../utils/dataLoader';
 import type { Municipio, Resposta, MunicipioDuplicado } from '../types';
 
@@ -36,6 +37,10 @@ export function BuscaAtiva() {
   const [duplicados, setDuplicados] = useState<MunicipioDuplicado[]>([]);
   const [serieHistoricaFiltro, setSerieHistoricaFiltro] = useState<'todos' | 'municipio' | 'drs'>('todos');
   const [serieHistoricaTipo, setSerieHistoricaTipo] = useState<'acumulado' | 'diario'>('acumulado');
+  
+  // Estados para filtro de período
+  const [dataInicio, setDataInicio] = useState<string>('');
+  const [dataFim, setDataFim] = useState<string>('');
   
   // Estados de ordenação para os painéis
   const [ordenacaoDRS, setOrdenacaoDRS] = useState<'progresso' | 'az' | 'za'>('progresso');
@@ -67,12 +72,19 @@ export function BuscaAtiva() {
     drs: selectedDRS || undefined
   };
 
-  const kpis = calcularKPIs(municipios, respostas, filtro);
-  const pendentes = getMunicipiosPendentes(municipios, respostas, filtro);
-  const respondidosSet = getMunicipiosRespondidos(respostas, municipios);
-  const emAndamentoSet = getMunicipiosEmAndamento(respostas, municipios);
-  const drsRespondidasSet = getDRSRespondidas(respostas);
-  const drsEmAndamentoSet = getDRSEmAndamento(respostas);
+  // Filtrar respostas por período
+  const respostasFiltradas = filterRespostasByPeriod(
+    respostas,
+    dataInicio ? new Date(dataInicio + 'T00:00:00') : null,
+    dataFim ? new Date(dataFim + 'T23:59:59') : null
+  );
+
+  const kpis = calcularKPIs(municipios, respostasFiltradas, filtro);
+  const pendentes = getMunicipiosPendentes(municipios, respostasFiltradas, filtro);
+  const respondidosSet = getMunicipiosRespondidos(respostasFiltradas, municipios);
+  const emAndamentoSet = getMunicipiosEmAndamento(respostasFiltradas, municipios);
+  const drsRespondidasSet = getDRSRespondidas(respostasFiltradas);
+  const drsEmAndamentoSet = getDRSEmAndamento(respostasFiltradas);
 
   const municipiosFiltrados = municipios.filter(m => {
     if (selectedRRAS && m.rras !== selectedRRAS) return false;
@@ -226,9 +238,9 @@ export function BuscaAtiva() {
 
     // Calcular série de municípios
     const calcularSerieMunicipios = () => {
-      const respostasFiltradas = respostas.filter(r => r.complete && r.instituicao === 'Municipio');
+      const respostasMunicipios = respostasFiltradas.filter(r => r.complete && r.instituicao === 'Municipio');
 
-      const respostasOrdenadas = [...respostasFiltradas].sort((a, b) => {
+      const respostasOrdenadas = [...respostasMunicipios].sort((a, b) => {
         const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
         const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
         return dateA - dateB;
@@ -266,9 +278,9 @@ export function BuscaAtiva() {
 
     // Calcular série de DRS (conta DRS únicas, não municípios)
     const calcularSerieDRS = () => {
-      const respostasFiltradas = respostas.filter(r => r.complete && r.instituicao === 'DRS' && r.drs);
+      const respostasDRS = respostasFiltradas.filter(r => r.complete && r.instituicao === 'DRS' && r.drs);
 
-      const respostasOrdenadas = [...respostasFiltradas].sort((a, b) => {
+      const respostasOrdenadas = [...respostasDRS].sort((a, b) => {
         const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
         const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
         return dateA - dateB;
@@ -613,6 +625,57 @@ export function BuscaAtiva() {
         onRegiaoSaudeChange={setSelectedRegiaoSaude}
         onMunicipioChange={setSelectedMunicipio}
       />
+
+      {/* Filtro de Período */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-white rounded-xl border border-slate-200 shadow-sm p-4"
+      >
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-teal-600" />
+            <span className="font-medium text-slate-700">Período das Respostas:</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-slate-600">De:</label>
+              <input
+                type="date"
+                value={dataInicio}
+                onChange={(e) => setDataInicio(e.target.value)}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-slate-600">Até:</label>
+              <input
+                type="date"
+                value={dataFim}
+                onChange={(e) => setDataFim(e.target.value)}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              />
+            </div>
+            {(dataInicio || dataFim) && (
+              <button
+                onClick={() => {
+                  setDataInicio('');
+                  setDataFim('');
+                }}
+                className="px-3 py-1.5 text-sm text-teal-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors"
+              >
+                Limpar período
+              </button>
+            )}
+          </div>
+          {(dataInicio || dataFim) && (
+            <div className="ml-auto text-sm text-slate-500">
+              {respostasFiltradas.filter(r => r.complete).length} respostas no período
+            </div>
+          )}
+        </div>
+      </motion.div>
 
       {/* Série Histórica */}
       {serieHistorica.length > 0 && (

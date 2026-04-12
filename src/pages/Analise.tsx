@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart3, Filter, Network, Lock, LogOut } from 'lucide-react';
-import { loadMunicipios, loadRespostas, normalizeNome, normalizeDRS } from '../utils/dataLoader';
+import { BarChart3, Filter, Network, Lock, LogOut, Calendar } from 'lucide-react';
+import { loadMunicipios, loadRespostas, normalizeNome, normalizeDRS, filterRespostasByPeriod } from '../utils/dataLoader';
 import type { Municipio, Resposta } from '../types';
 import Papa from 'papaparse';
 
@@ -1729,6 +1729,10 @@ export function Analise() {
   const [selectedMunicipio, setSelectedMunicipio] = useState<string | null>(null);
   const [selectedBloco, setSelectedBloco] = useState<string>('rras');
   const [selectedInstituicao, setSelectedInstituicao] = useState<'Municipio' | 'DRS'>('Municipio');
+  
+  // Estados para filtro de período
+  const [dataInicio, setDataInicio] = useState<string>('');
+  const [dataFim, setDataFim] = useState<string>('');
 
   // Função de login
   const handleLogin = (e: React.FormEvent) => {
@@ -1824,8 +1828,15 @@ export function Analise() {
 
   const municipiosList = municipiosFiltrados.map(m => m.nome).sort();
 
+  // Filtrar respostas por período
+  const respostasPorPeriodo = filterRespostasByPeriod(
+    respostas,
+    dataInicio ? new Date(dataInicio + 'T00:00:00') : null,
+    dataFim ? new Date(dataFim + 'T23:59:59') : null
+  );
+
   // Filtrar respostas completas com respondentes válidos (Municipio ou DRS)
-  const respostasCompletas = respostas.filter(r => 
+  const respostasCompletas = respostasPorPeriodo.filter(r => 
     r.complete && (r.instituicao === 'Municipio' || r.instituicao === 'DRS')
   );
   
@@ -1852,8 +1863,8 @@ export function Analise() {
   // Dados brutos filtrados (apenas Complete + Municipio/DRS, sem duplicados)
   // Usa a mesma lógica do dataLoader para contar municípios únicos
   const dadosBrutosFiltrados = (() => {
-    // Filtrar respostas completas válidas (Municipio ou DRS, não teste)
-    const respostasValidas = respostas.filter(r => 
+    // Filtrar respostas completas válidas (Municipio ou DRS, não teste) - já filtradas por período
+    const respostasValidas = respostasPorPeriodo.filter(r => 
       r.complete && (r.instituicao === 'Municipio' || r.instituicao === 'DRS')
     );
 
@@ -3031,6 +3042,48 @@ export function Analise() {
               <option key={mun} value={mun}>{mun}</option>
             ))}
           </select>
+        </div>
+        
+        {/* Filtro de Período */}
+        <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-slate-100">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-indigo-500" />
+            <span className="text-sm font-medium text-slate-600">Período:</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-slate-500">De:</label>
+            <input
+              type="date"
+              value={dataInicio}
+              onChange={(e) => setDataInicio(e.target.value)}
+              className="px-2 py-1 border border-slate-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-slate-500">Até:</label>
+            <input
+              type="date"
+              value={dataFim}
+              onChange={(e) => setDataFim(e.target.value)}
+              className="px-2 py-1 border border-slate-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+          {(dataInicio || dataFim) && (
+            <>
+              <button
+                onClick={() => {
+                  setDataInicio('');
+                  setDataFim('');
+                }}
+                className="px-2 py-1 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded transition-colors"
+              >
+                Limpar
+              </button>
+              <span className="text-xs text-slate-400">
+                {respostasPorPeriodo.filter(r => r.complete).length} respostas
+              </span>
+            </>
+          )}
         </div>
       </motion.div>
 

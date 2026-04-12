@@ -19,6 +19,47 @@ export function normalizeDRS(drs: string): string {
     .trim();
 }
 
+// Parseia timestamp do formato "M/D/YYYY HH:MM" para Date
+export function parseTimestamp(timestamp: string): Date | null {
+  if (!timestamp || timestamp.includes('[not completed]')) return null;
+  
+  const match = timestamp.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  
+  const [, month, day, year, hour, minute] = match;
+  return new Date(
+    parseInt(year),
+    parseInt(month) - 1,
+    parseInt(day),
+    parseInt(hour),
+    parseInt(minute)
+  );
+}
+
+// Filtra respostas por período de data
+export function filterRespostasByPeriod(
+  respostas: Resposta[],
+  dataInicio: Date | null,
+  dataFim: Date | null
+): Resposta[] {
+  if (!dataInicio && !dataFim) return respostas;
+  
+  return respostas.filter(r => {
+    const dataResposta = parseTimestamp(r.timestamp);
+    if (!dataResposta) return false;
+    
+    if (dataInicio && dataResposta < dataInicio) return false;
+    if (dataFim) {
+      // Incluir o dia inteiro da data fim (até 23:59:59)
+      const fimDoDia = new Date(dataFim);
+      fimDoDia.setHours(23, 59, 59, 999);
+      if (dataResposta > fimDoDia) return false;
+    }
+    
+    return true;
+  });
+}
+
 export interface GeoJSONFeature {
   type: string;
   properties: {
