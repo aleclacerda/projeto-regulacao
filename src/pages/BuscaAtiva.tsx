@@ -13,6 +13,7 @@ import {
   getDRSRespondidas,
   getDRSEmAndamento,
   getMunicipiosDuplicados,
+  getDRSDuplicadas,
   normalizeNome,
   normalizeDRS,
   filterRespostasByPeriod
@@ -35,6 +36,7 @@ export function BuscaAtiva() {
   const [selectedStatus, setSelectedStatus] = useState<'todos' | 'respondido' | 'em_andamento' | 'pendente'>('todos');
   const [statusFilterType, setStatusFilterType] = useState<'municipio' | 'drs'>('municipio');
   const [duplicados, setDuplicados] = useState<MunicipioDuplicado[]>([]);
+  const [drsDuplicadas, setDRSDuplicadas] = useState<MunicipioDuplicado[]>([]);
   const [serieHistoricaFiltro, setSerieHistoricaFiltro] = useState<'todos' | 'municipio' | 'drs'>('todos');
   const [serieHistoricaTipo, setSerieHistoricaTipo] = useState<'acumulado' | 'diario'>('acumulado');
   
@@ -57,6 +59,7 @@ export function BuscaAtiva() {
         setMunicipios(munis);
         setRespostas(resps);
         setDuplicados(getMunicipiosDuplicados(resps));
+        setDRSDuplicadas(getDRSDuplicadas(resps));
       } catch (err) {
         setError('Erro ao carregar dados. Verifique se os arquivos CSV estão disponíveis.');
         console.error(err);
@@ -1629,7 +1632,7 @@ export function BuscaAtiva() {
       </motion.div>
 
       {/* Análise Gerencial: Duplicados (sintético, ao final) */}
-      {duplicados.length > 0 && (
+      {(duplicados.length > 0 || drsDuplicadas.length > 0) && (
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1640,19 +1643,44 @@ export function BuscaAtiva() {
             <BarChart3 className="w-4 h-4 text-amber-600" />
             <h4 className="font-semibold text-amber-800 text-sm">Análise Gerencial: Respostas Duplicadas</h4>
           </div>
-          <p className="text-xs text-amber-700 mb-2">
-            {duplicados.length} município(s) com múltiplas respostas. A contagem considera apenas a resposta mais recente.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {duplicados.map((dup, idx) => (
-              <span key={idx} className="bg-amber-200 text-amber-800 px-2 py-1 rounded text-xs font-medium">
-                <span className="capitalize">{dup.municipio}</span>
-                <span className="text-amber-600 ml-1">
-                  (IDs: {dup.respostas.map(r => r.recordId).join(', ')})
-                </span>
-              </span>
-            ))}
-          </div>
+          
+          {/* DRS Duplicadas */}
+          {drsDuplicadas.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs text-amber-700 mb-2">
+                <strong>{drsDuplicadas.length} DRS</strong> com múltiplas respostas. A contagem considera apenas a resposta mais recente.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {drsDuplicadas.map((dup, idx) => (
+                  <span key={`drs-${idx}`} className="bg-violet-200 text-violet-800 px-2 py-1 rounded text-xs font-medium">
+                    <span>{dup.municipio}</span>
+                    <span className="text-violet-600 ml-1">
+                      (IDs: {dup.respostas.map(r => r.recordId).join(', ')})
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Municípios Duplicados */}
+          {duplicados.length > 0 && (
+            <div>
+              <p className="text-xs text-amber-700 mb-2">
+                <strong>{duplicados.length} município(s)</strong> com múltiplas respostas. A contagem considera apenas a resposta mais recente.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {duplicados.map((dup, idx) => (
+                  <span key={`mun-${idx}`} className="bg-amber-200 text-amber-800 px-2 py-1 rounded text-xs font-medium">
+                    <span className="capitalize">{dup.municipio}</span>
+                    <span className="text-amber-600 ml-1">
+                      (IDs: {dup.respostas.map(r => r.recordId).join(', ')})
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </motion.div>
       )}
     </div>

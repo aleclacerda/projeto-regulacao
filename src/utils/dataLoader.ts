@@ -12,11 +12,19 @@ export function normalizeNome(nome: string): string {
 
 // Normaliza nomes de DRS para garantir correspondência entre CSV e GeoJSON
 // Corrige diferenças de espaçamento como "DRS III- Araraquara" vs "DRS III - Araraquara"
+// Também remove acentos para evitar problemas de encoding entre arquivos
 export function normalizeDRS(drs: string): string {
-  return drs
-    .replace(/\s*-\s*/g, ' - ')  // Normaliza espaços ao redor do hífen
-    .replace(/\s+/g, ' ')         // Remove espaços duplicados
-    .trim();
+  // Primeiro, adiciona hífen se faltar após número romano (DRS XIV Sao -> DRS XIV - Sao)
+  // O regex (?!-) garante que não adiciona hífen se já existir
+  let normalized = drs.replace(/(DRS\s+[IVXLCDM]+)\s+(?!-)/g, '$1 - ');
+  
+  return normalized
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .replace(/\s*-\s*/g, ' - ')      // Normaliza espaços ao redor do hífen
+    .replace(/\s+/g, ' ')            // Remove espaços duplicados
+    .trim()
+    .toLowerCase();                  // Lowercase para comparação
 }
 
 // Parseia timestamp do formato "M/D/YYYY HH:MM" para Date
@@ -584,6 +592,69 @@ export function getMunicipiosDuplicados(respostas: Resposta[]): MunicipioDuplica
   }
   
   // Ordenar por quantidade de duplicados (maior primeiro)
+  return duplicados.sort((a, b) => b.respostas.length - a.respostas.length);
+}
+
+// Detecta DRS que responderam mais de uma vez (duplicados)
+export function getDRSDuplicadas(respostas: Resposta[]): MunicipioDuplicado[] {
+  // Agrupar respostas de DRS por nome da DRS
+  const drsRespostas = new Map<string, { recordId: string; timestamp: string; nomeRespondente: string; instituicao: string; email: string; cargo: string }[]>();
+  
+  for (const resposta of respostas) {
+    if (resposta.complete && resposta.instituicao === 'DRS' && resposta.drs) {
+      const drsNormalizada = normalizeNome(resposta.drs);
+      if (!drsRespostas.has(drsNormalizada)) {
+        drsRespostas.set(drsNormalizada, []);
+      }
+      drsRespostas.get(drsNormalizada)!.push({
+        recordId: resposta.recordId,
+        timestamp: resposta.timestamp,
+        nomeRespondente: resposta.nomeRespondente,
+        instituicao: resposta.instituicao,
+        email: resposta.email,
+        cargo: resposta.cargo
+      });
+    }
+  }
+  
+  const parseDate = (ts: string) => {
+    if (!ts) return new Date(0);
+    const parts = ts.split(' ');
+    if (parts.length < 2) return new Date(0);
+    const dateParts = parts[0].split('/');
+    const timeParts = parts[1].split(':');
+    if (dateParts.length < 3) return new Date(0);
+    return new Date(
+      parseInt(dateParts[2]),
+      parseInt(dateParts[0]) - 1,
+      parseInt(dateParts[1]),
+      parseInt(timeParts[0] || '0'),
+      parseInt(timeParts[1] || '0')
+    );
+  };
+  
+  // Filtrar apenas DRS com mais de uma resposta
+  const duplicados: MunicipioDuplicado[] = [];
+  for (const [drs, respostasArr] of drsRespostas) {
+    if (respostasArr.length > 1) {
+      // Ordenar por timestamp (mais recente primeiro)
+      const respostasOrdenadas = [...respostasArr].sort((a, b) => {
+        return parseDate(b.timestamp).getTime() - parseDate(a.timestamp).getTime();
+      });
+      
+      // Encontrar o nome original da DRS
+      const respostaOriginal = respostas.find(r => 
+        r.instituicao === 'DRS' && normalizeNome(r.drs) === drs
+      );
+      const nomeOriginal = respostaOriginal?.drs || drs;
+      
+      duplicados.push({
+        municipio: nomeOriginal,
+        respostas: respostasOrdenadas
+      });
+    }
+  }
+  
   return duplicados.sort((a, b) => b.respostas.length - a.respostas.length);
 }
 

@@ -17,7 +17,7 @@ import {
   X,
   AlertCircle
 } from 'lucide-react';
-import { loadMunicipios, loadRespostas, calcularKPIs, getDataAtualizacao, getMunicipiosDuplicados, getMunicipiosIncompletos, getDRSIncompletas, getDRSRespondidas } from '../utils/dataLoader';
+import { loadMunicipios, loadRespostas, calcularKPIs, getDataAtualizacao, getMunicipiosDuplicados, getDRSDuplicadas, getMunicipiosIncompletos, getDRSIncompletas, getDRSRespondidas } from '../utils/dataLoader';
 
 export function Home() {
   const [stats, setStats] = useState({
@@ -62,7 +62,10 @@ export function Home() {
         
         // Contar duplicados para subtrair da contagem de completos
         const duplicados = getMunicipiosDuplicados(respostas);
-        const totalDuplicados = duplicados.reduce((acc, d) => acc + (d.respostas.length - 1), 0);
+        const drsDuplicadas = getDRSDuplicadas(respostas);
+        const totalDuplicadosMunicipios = duplicados.reduce((acc, d) => acc + (d.respostas.length - 1), 0);
+        const totalDuplicadosDRS = drsDuplicadas.reduce((acc, d) => acc + (d.respostas.length - 1), 0);
+        const totalDuplicados = totalDuplicadosMunicipios + totalDuplicadosDRS;
         
         // Contar municípios e DRS incompletos (únicos)
         const municipiosIncompletosSet = getMunicipiosIncompletos(respostas, municipios);
