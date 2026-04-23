@@ -1335,14 +1335,15 @@ const PERGUNTAS_BLOCO_GESTAO_OFERTA = [
   },
   {
     id: 'criterios_repatriamento',
+    coluna: 'Quais critérios são utilizados para o repatriamento?',
     titulo: 'Critérios utilizados para repatriamento',
-    tipo: 'checkbox',
-    colunas: [
-      { coluna: 'Quais critérios são utilizados para o repatriamento? (choice=Estabilização clínica)', label: 'Estabilização clínica' },
-      { coluna: 'Quais critérios são utilizados para o repatriamento? (choice=Conclusão de etapa assistencial)', label: 'Conclusão de etapa assistencial' },
-      { coluna: 'Quais critérios são utilizados para o repatriamento? (choice=Disponibilidade de serviço no município)', label: 'Disponibilidade de serviço no município' },
-      { coluna: 'Quais critérios são utilizados para o repatriamento? (choice=Pactuação regional)', label: 'Pactuação regional' },
-      { coluna: 'Quais critérios são utilizados para o repatriamento? (choice=Outro)', label: 'Outro' }
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Estabilização clínica', match: 'Estabilização clínica' },
+      { label: 'Conclusão de etapa assistencial', match: 'Conclusão de etapa assistencial' },
+      { label: 'Disponibilidade de serviço no município', match: 'Disponibilidade de serviço no município' },
+      { label: 'Pactuação regional', match: 'Pactuação regional' },
+      { label: 'Outro', match: 'Outro' }
     ]
   },
   {
@@ -2916,8 +2917,9 @@ export function Analise() {
     PERGUNTAS_BLOCO_GESTAO_OFERTA[25].opcoes!
   );
 
-  const analiseCriteriosRepatriamento = analisarCheckbox(
-    PERGUNTAS_BLOCO_GESTAO_OFERTA[26].colunas!
+  const analiseCriteriosRepatriamento = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[26].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[26].opcoes!
   );
 
   const analiseMeiosRepatriamento = analisarCheckbox(
@@ -4268,7 +4270,7 @@ export function Analise() {
               titulo="Critérios utilizados para repatriamento"
               dados={analiseCriteriosRepatriamento}
               corIndex={2}
-              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[26].colunas?.[0]?.coluna}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[26].coluna}
             />
             <PerguntaCompacta 
               titulo="Meios utilizados no repatriamento"
