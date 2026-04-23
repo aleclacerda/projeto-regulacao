@@ -1327,9 +1327,22 @@ const PERGUNTAS_BLOCO_GESTAO_OFERTA = [
     titulo: 'Estratégia de repatriamento',
     tipo: 'dropdown',
     opcoes: [
-      { label: 'Sim', match: 'Sim' },
-      { label: 'Não', match: 'Não' },
-      { label: 'Em implantação', match: 'Em implantação' }
+      { label: 'Sim, formalizada', match: 'Sim, formalizada' },
+      { label: 'Sim, informal', match: 'Sim, informal' },
+      { label: 'Em elaboração', match: 'Em elaboração' },
+      { label: 'Não existe', match: 'Não existe' }
+    ]
+  },
+  {
+    id: 'criterios_repatriamento',
+    titulo: 'Critérios utilizados para repatriamento',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Quais critérios são utilizados para o repatriamento? (choice=Estabilização clínica)', label: 'Estabilização clínica' },
+      { coluna: 'Quais critérios são utilizados para o repatriamento? (choice=Conclusão de etapa assistencial)', label: 'Conclusão de etapa assistencial' },
+      { coluna: 'Quais critérios são utilizados para o repatriamento? (choice=Disponibilidade de serviço no município)', label: 'Disponibilidade de serviço no município' },
+      { coluna: 'Quais critérios são utilizados para o repatriamento? (choice=Pactuação regional)', label: 'Pactuação regional' },
+      { coluna: 'Quais critérios são utilizados para o repatriamento? (choice=Outro)', label: 'Outro' }
     ]
   },
   {
@@ -2903,22 +2916,26 @@ export function Analise() {
     PERGUNTAS_BLOCO_GESTAO_OFERTA[25].opcoes!
   );
 
-  const analiseMeiosRepatriamento = analisarCheckbox(
+  const analiseCriteriosRepatriamento = analisarCheckbox(
     PERGUNTAS_BLOCO_GESTAO_OFERTA[26].colunas!
   );
 
-  const analiseGargalosRepatriamento = analisarCheckbox(
+  const analiseMeiosRepatriamento = analisarCheckbox(
     PERGUNTAS_BLOCO_GESTAO_OFERTA[27].colunas!
   );
 
+  const analiseGargalosRepatriamento = analisarCheckbox(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[28].colunas!
+  );
+
   const analiseSistemaIdentificaAutomatico = analisarPergunta(
-    PERGUNTAS_BLOCO_GESTAO_OFERTA[28].coluna!,
-    PERGUNTAS_BLOCO_GESTAO_OFERTA[28].opcoes!
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[29].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[29].opcoes!
   );
 
   const analiseGestaoExclusivaPopulacao = analisarPergunta(
-    PERGUNTAS_BLOCO_GESTAO_OFERTA[29].coluna!,
-    PERGUNTAS_BLOCO_GESTAO_OFERTA[29].opcoes!
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[30].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[30].opcoes!
   );
 
   // ========== ANÁLISES DO BLOCO ORDENAÇÃO DA DEMANDA ==========
@@ -4248,28 +4265,34 @@ export function Analise() {
               perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[25].coluna}
             />
             <PerguntaCompacta 
-              titulo="Meios utilizados no repatriamento"
-              dados={analiseMeiosRepatriamento}
+              titulo="Critérios utilizados para repatriamento"
+              dados={analiseCriteriosRepatriamento}
               corIndex={2}
               perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[26].colunas?.[0]?.coluna}
             />
             <PerguntaCompacta 
-              titulo="Principais gargalos do repatriamento"
-              dados={analiseGargalosRepatriamento}
+              titulo="Meios utilizados no repatriamento"
+              dados={analiseMeiosRepatriamento}
               corIndex={3}
               perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[27].colunas?.[0]?.coluna}
             />
             <PerguntaCompacta 
+              titulo="Principais gargalos do repatriamento"
+              dados={analiseGargalosRepatriamento}
+              corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[28].colunas?.[0]?.coluna}
+            />
+            <PerguntaCompacta 
               titulo="Sistema identifica automaticamente"
               dados={analiseSistemaIdentificaAutomatico}
-              corIndex={4}
-              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[28].coluna}
+              corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[29].coluna}
             />
             <PerguntaCompacta 
               titulo="Gestão exclusiva para própria população"
               dados={analiseGestaoExclusivaPopulacao}
-              corIndex={5}
-              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[29].coluna}
+              corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[30].coluna}
             />
           </div>
         </motion.div>
