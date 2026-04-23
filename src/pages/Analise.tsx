@@ -337,6 +337,62 @@ const PERGUNTAS_BLOCO_GOVERNANCA_DRS = [
       { label: 'Tratadas diretamente pelos serviços', match: 'As demandas judiciais são tratadas diretamente pelos serviços ou municípios, sem articulação regional estruturada' },
       { label: 'Não há fluxo ou estratégia definida', match: 'Não há fluxo ou estratégia definida para lidar com judicialização na regulação assistencial.' }
     ]
+  },
+  {
+    id: 'papel_drs_regulacao',
+    titulo: 'Papel do DRS na regulação do acesso',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Qual é o papel exercido pelo DRS na organização da regulação do acesso ?  (choice=Coordenação Regional)', label: 'Coordenação Regional' },
+      { coluna: 'Qual é o papel exercido pelo DRS na organização da regulação do acesso ?  (choice=Apoio técnico aos municipais)', label: 'Apoio técnico aos municipais' },
+      { coluna: 'Qual é o papel exercido pelo DRS na organização da regulação do acesso ?  (choice=Monitoramento do acesso)', label: 'Monitoramento do acesso' },
+      { coluna: 'Qual é o papel exercido pelo DRS na organização da regulação do acesso ?  (choice=Gestão direta da oferta estadual)', label: 'Gestão direta da oferta estadual' },
+      { coluna: 'Qual é o papel exercido pelo DRS na organização da regulação do acesso ?  (choice=Mediação de conflitos entre municípios)', label: 'Mediação de conflitos' },
+      { coluna: 'Qual é o papel exercido pelo DRS na organização da regulação do acesso ?  (choice=Outros)', label: 'Outros' }
+    ]
+  },
+  {
+    id: 'indicadores_drs_monitorados',
+    titulo: 'Indicadores monitorados pelo DRS',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Quais indicadores são monitorados? (choice=Solicitações originadas na APS)', label: 'Solicitações originadas na APS' },
+      { coluna: 'Quais indicadores são monitorados? (choice=Solicitações devolvidas)', label: 'Solicitações devolvidas' },
+      { coluna: 'Quais indicadores são monitorados? (choice=Tempo médio de espera por especialidade)', label: 'Tempo médio de espera' },
+      { coluna: 'Quais indicadores são monitorados? (choice=Absenteísmo)', label: 'Absenteísmo' },
+      { coluna: 'Quais indicadores são monitorados? (choice=Ocupação de vagas)', label: 'Ocupação de vagas' },
+      { coluna: 'Quais indicadores são monitorados? (choice=Dependência inter-regional)', label: 'Dependência inter-regional' },
+      { coluna: 'Quais indicadores são monitorados? (choice=Taxa de atração regional)', label: 'Taxa de atração regional' },
+      { coluna: 'Quais indicadores são monitorados? (choice=Demandas reprimidas)', label: 'Demandas reprimidas' },
+      { coluna: 'Quais indicadores são monitorados? (choice=Percentual de solicitações atendidas)', label: 'Percentual de solicitações atendidas' }
+    ]
+  },
+  {
+    id: 'mecanismos_participacao_social',
+    titulo: 'Mecanismos de participação social',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Quais mecanismos para escuta ou participação social em temas relacionados ao acesso e regulação na região? (choice=Conselhos Municipal de Saúde)', label: 'Conselhos Municipal de Saúde' },
+      { coluna: 'Quais mecanismos para escuta ou participação social em temas relacionados ao acesso e regulação na região? (choice=Reuniões comunitárias da APS)', label: 'Reuniões comunitárias da APS' },
+      { coluna: 'Quais mecanismos para escuta ou participação social em temas relacionados ao acesso e regulação na região? (choice=Ouvidoria do SUS)', label: 'Ouvidoria do SUS' },
+      { coluna: 'Quais mecanismos para escuta ou participação social em temas relacionados ao acesso e regulação na região? (choice=Transparência das filas de espera)', label: 'Transparência das filas' },
+      { coluna: 'Quais mecanismos para escuta ou participação social em temas relacionados ao acesso e regulação na região? (choice=Plataformas digitais para cidadão)', label: 'Plataformas digitais' },
+      { coluna: 'Quais mecanismos para escuta ou participação social em temas relacionados ao acesso e regulação na região? (choice=Não existem mecanismos estruturados)', label: 'Não existem mecanismos' },
+      { coluna: 'Quais mecanismos para escuta ou participação social em temas relacionados ao acesso e regulação na região? (choice=Outros)', label: 'Outros' }
+    ]
+  },
+  {
+    id: 'desafios_regulacao',
+    titulo: 'Principal desafio para regulação',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Qual o principal desafio para organização da regulação do acesso na região? (choice=Insuficiência de oferta de serviços especializados)', label: 'Insuficiência de oferta' },
+      { coluna: 'Qual o principal desafio para organização da regulação do acesso na região? (choice=Falta de pactuação regional entre municípios)', label: 'Falta de pactuação regional' },
+      { coluna: 'Qual o principal desafio para organização da regulação do acesso na região? (choice=Fragilidade de protocolos e fluxos assistenciais)', label: 'Fragilidade de protocolos' },
+      { coluna: 'Qual o principal desafio para organização da regulação do acesso na região? (choice=Limitações tecnológicas ou de sistemas de informação)', label: 'Limitações tecnológicas' },
+      { coluna: 'Qual o principal desafio para organização da regulação do acesso na região? (choice=Falta de recursos humanos para regulação)', label: 'Falta de recursos humanos' },
+      { coluna: 'Qual o principal desafio para organização da regulação do acesso na região? (choice=Outros)', label: 'Outros' }
+    ]
   }
 ];
 
@@ -460,6 +516,28 @@ const PERGUNTAS_BLOCO_ESTRUTURA_DRS = [
       { label: 'Totalmente integrados', match: 'Totalmente integrados' },
       { label: 'Parcialmente integrados', match: 'Parcialmente integrados' },
       { label: 'Não integrados', match: 'Não integrados' }
+    ]
+  },
+  {
+    id: 'instancia_coordenacao_drs',
+    coluna: 'Existe uma instância regional responsável pela coordenação da regulação do acesso no âmbito do DRS?',
+    titulo: 'Instância regional de coordenação',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' },
+      { label: 'Em implantação', match: 'Em implantação' }
+    ]
+  },
+  {
+    id: 'equipe_tecnica_drs',
+    titulo: 'Equipe técnica de regulação no DRS',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Existe equipe técnica responsável pela regulação do acesso no DRS ? (choice=Possui equipe para regulação das urgências/emergências)', label: 'Equipe urgências/emergências' },
+      { coluna: 'Existe equipe técnica responsável pela regulação do acesso no DRS ? (choice=Possui equipe para regulação ambulatorial especializada)', label: 'Equipe ambulatorial especializada' },
+      { coluna: 'Existe equipe técnica responsável pela regulação do acesso no DRS ? (choice=Possui equipe para regulação de leitos)', label: 'Equipe regulação de leitos' },
+      { coluna: 'Existe equipe técnica responsável pela regulação do acesso no DRS ? (choice=Não possui equipe)', label: 'Não possui equipe' }
     ]
   }
 ];
@@ -926,6 +1004,37 @@ const PERGUNTAS_BLOCO_PRIORIZACAO = [
       { label: 'Sim', match: 'Sim' },
       { label: 'Não', match: 'Não' }
     ]
+  },
+  {
+    id: 'fluxos_alterados_informalmente',
+    coluna: 'Os fluxos de regulação são alterados informalmente?',
+    titulo: 'Fluxos alterados informalmente',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'filas_multiplos_sistemas',
+    coluna: 'Existem filas paralelas decorrentes do uso de múltiplos sistemas?',
+    titulo: 'Filas paralelas por múltiplos sistemas',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'priorizacao_regulador_sistema',
+    coluna: 'Existindo critérios de priorização definidos, são designados pelo regulador ou o sistema tem a capacidade de priorizar (por exemplo paciente mais tempo na fila ou paciente mais idoso ou ainda paciente em situação de vulnerabilidade ou outros',
+    titulo: 'Priorização: regulador ou sistema',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Regulador', match: 'Regulador' },
+      { label: 'Sistema', match: 'Sistema' },
+      { label: 'Ambos', match: 'Ambos' }
+    ]
   }
 ];
 
@@ -1211,6 +1320,62 @@ const PERGUNTAS_BLOCO_GESTAO_OFERTA = [
       { label: 'Sim', match: 'Sim' },
       { label: 'Não', match: 'Não' }
     ]
+  },
+  {
+    id: 'repatriamento_estrategia',
+    coluna: 'Existe estratégia definida de repatriamento de pacientes?  Repatriamento é o processo de retorno do usuário ao seu município ou serviço de origem após atendimento em outro ponto da rede, especialmente quando encaminhado por regulação, com o objetivo de dar continuidade ao cuidado em nível assistencial adequado.',
+    titulo: 'Estratégia de repatriamento',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' },
+      { label: 'Em implantação', match: 'Em implantação' }
+    ]
+  },
+  {
+    id: 'meios_repatriamento',
+    titulo: 'Meios utilizados no repatriamento',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Quais meios são utilizados no processo de repatriamento? (choice=SIRESP)', label: 'SIRESP' },
+      { coluna: 'Quais meios são utilizados no processo de repatriamento? (choice=Sistema Municipal)', label: 'Sistema Municipal' },
+      { coluna: 'Quais meios são utilizados no processo de repatriamento? (choice=Planilhas)', label: 'Planilhas' },
+      { coluna: 'Quais meios são utilizados no processo de repatriamento? (choice=Whatsapp)', label: 'Whatsapp' },
+      { coluna: 'Quais meios são utilizados no processo de repatriamento? (choice=E-mail)', label: 'E-mail' }
+    ]
+  },
+  {
+    id: 'gargalos_repatriamento',
+    titulo: 'Principais gargalos do repatriamento',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Quais os principais gargalos do repatriamento? (choice=Falta de vaga)', label: 'Falta de vaga' },
+      { coluna: 'Quais os principais gargalos do repatriamento? (choice=Transporte)', label: 'Transporte' },
+      { coluna: 'Quais os principais gargalos do repatriamento? (choice=Comunicação entre os serviços)', label: 'Comunicação entre serviços' },
+      { coluna: 'Quais os principais gargalos do repatriamento? (choice=Divergências de critérios)', label: 'Divergências de critérios' },
+      { coluna: 'Quais os principais gargalos do repatriamento? (choice=Demora na autorização)', label: 'Demora na autorização' }
+    ]
+  },
+  {
+    id: 'sistema_identifica_automatico',
+    coluna: 'O sistema de regulação utilizado permite identificar automaticamente pacientes que já foram atendidos, cancelamentos ou vagas não utilizadas?',
+    titulo: 'Sistema identifica automaticamente',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' },
+      { label: 'Parcialmente', match: 'Parcialmente' }
+    ]
+  },
+  {
+    id: 'gestao_exclusiva_populacao',
+    coluna: 'O municipio realiza gestão da oferta de serviços de saúde exclusivamente para o atendimento da sua própria população?',
+    titulo: 'Gestão exclusiva para própria população',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
   }
 ];
 
@@ -1454,6 +1619,86 @@ const PERGUNTAS_BLOCO_GOVERNANCA = [
       { label: 'Sim- visível apenas para central de regulação', match: 'Sim- visivel apenas para central de regulação' },
       { label: 'Não existe transparência', match: 'Não existe transparência' },
       { label: 'Depende do serviço', match: 'Depende do serviço' }
+    ]
+  },
+  {
+    id: 'gestores_ajustam_fila',
+    coluna: 'Gestores ou serviços podem ajustar  a ordem da fila de espera?',
+    titulo: 'Gestores podem ajustar ordem da fila',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'espacos_governanca_municipio',
+    coluna: 'Em quais espaços de governança regional relacionados à regulação do acesso o município participa?',
+    titulo: 'Espaços de governança que participa',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'CIR', match: 'CIR' },
+      { label: 'Câmara Técnica de Regulação', match: 'Câmara Técnica de Regulação' },
+      { label: 'Grupo Regional de Regulação', match: 'Grupo Regional de Regulação' },
+      { label: 'CEGRAS', match: 'CEGRAS' },
+      { label: 'Não participa', match: 'Não participa' }
+    ]
+  },
+  {
+    id: 'sistemas_integracao',
+    coluna: 'Quais sistemas estão em integração?',
+    titulo: 'Sistemas em integração',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'SIRESP', match: 'SIRESP' },
+      { label: 'Sistema municipal', match: 'Sistema municipal' },
+      { label: 'Prontuário eletrônico', match: 'Prontuário eletrônico' },
+      { label: 'Outro', match: 'Outro' }
+    ]
+  },
+  {
+    id: 'pactuacoes_motivos',
+    titulo: 'Motivos quando pactuações não são cumpridas',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Quando as pactuações não são cumpridas, quais são os principais motivos? (choice=Insuficiência da oferta)', label: 'Insuficiência da oferta' },
+      { coluna: 'Quando as pactuações não são cumpridas, quais são os principais motivos? (choice=Falta de monitoramento)', label: 'Falta de monitoramento' },
+      { coluna: 'Quando as pactuações não são cumpridas, quais são os principais motivos? (choice=Mudança na gestão)', label: 'Mudança na gestão' },
+      { coluna: 'Quando as pactuações não são cumpridas, quais são os principais motivos? (choice=Problemas de financiamento)', label: 'Problemas de financiamento' },
+      { coluna: 'Quando as pactuações não são cumpridas, quais são os principais motivos? (choice=Falta de adesão dos serviços)', label: 'Falta de adesão dos serviços' }
+    ]
+  },
+  {
+    id: 'indicadores_municipio',
+    titulo: 'Indicadores monitorados pelo município',
+    tipo: 'checkbox',
+    colunas: [
+      { coluna: 'Quais indicadores os municípios monitoram?  (choice=Absenteísmo)', label: 'Absenteísmo' },
+      { coluna: 'Quais indicadores os municípios monitoram?  (choice=Indeferimento de processos solicitados)', label: 'Indeferimento de processos' },
+      { coluna: 'Quais indicadores os municípios monitoram?  (choice=Tempo de espera para consultas e exames)', label: 'Tempo de espera consultas/exames' },
+      { coluna: 'Quais indicadores os municípios monitoram?  (choice=Tempo de espera para internações reguladas)', label: 'Tempo de espera internações' },
+      { coluna: 'Quais indicadores os municípios monitoram?  (choice=Tempo médio entre a autorização e a coleta do usuário no transporte sanitário após o aceite da vaga)', label: 'Tempo transporte sanitário' },
+      { coluna: 'Quais indicadores os municípios monitoram?  (choice=Outro)', label: 'Outro' }
+    ]
+  },
+  {
+    id: 'indicadores_instancias',
+    coluna: 'Indicadores de regulação do acesso são apresentados nas instâncias de gestão?',
+    titulo: 'Indicadores apresentados nas instâncias',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
+    ]
+  },
+  {
+    id: 'indicadores_raca_cor',
+    coluna: 'Os indicadores de regulação são desagregados por raça/cor?',
+    titulo: 'Indicadores desagregados por raça/cor',
+    tipo: 'dropdown',
+    opcoes: [
+      { label: 'Sim', match: 'Sim' },
+      { label: 'Não', match: 'Não' }
     ]
   }
 ];
@@ -2201,6 +2446,16 @@ export function Analise() {
     PERGUNTAS_BLOCO_ESTRUTURA_DRS[2].opcoes!
   );
 
+  // Novas análises do Bloco Estrutura DRS
+  const analiseInstanciaCoordenacaoDRS = analisarPerguntaDRS(
+    PERGUNTAS_BLOCO_ESTRUTURA_DRS[3].coluna!,
+    PERGUNTAS_BLOCO_ESTRUTURA_DRS[3].opcoes!
+  );
+
+  const analiseEquipeTecnicaDRS = analisarCheckboxDRS(
+    PERGUNTAS_BLOCO_ESTRUTURA_DRS[4].colunas!
+  );
+
   // ========== ANÁLISES DO BLOCO ORDENAÇÃO DA DEMANDA (DRS) ==========
   const analiseDiretrizesRegionais = analisarPerguntaDRS(
     PERGUNTAS_BLOCO_ORDENACAO_DRS[0].coluna!,
@@ -2362,6 +2617,23 @@ export function Analise() {
     PERGUNTAS_BLOCO_GOVERNANCA_DRS[7].opcoes!
   );
 
+  // Novas análises do Bloco Governança DRS
+  const analisePapelDRSRegulacao = analisarCheckboxDRS(
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[8].colunas!
+  );
+
+  const analiseIndicadoresDRSMonitorados = analisarCheckboxDRS(
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[9].colunas!
+  );
+
+  const analiseMecanismosParticipacaoSocial = analisarCheckboxDRS(
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[10].colunas!
+  );
+
+  const analiseDesafiosRegulacao = analisarCheckboxDRS(
+    PERGUNTAS_BLOCO_GOVERNANCA_DRS[11].colunas!
+  );
+
   // ========== ANÁLISES DO BLOCO GOVERNANÇA ==========
   const analiseAreaResponsavel = analisarPergunta(
     PERGUNTAS_BLOCO_GOVERNANCA[0].coluna!,
@@ -2466,6 +2738,40 @@ export function Analise() {
   const analiseTransparenciaFila = analisarPergunta(
     PERGUNTAS_BLOCO_GOVERNANCA[20].coluna!,
     PERGUNTAS_BLOCO_GOVERNANCA[20].opcoes!
+  );
+
+  // Novas análises do Bloco Governança
+  const analiseGestoresAjustamFila = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[21].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[21].opcoes!
+  );
+
+  const analiseEspacosGovernancaMunicipio = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[22].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[22].opcoes!
+  );
+
+  const analiseSistemasIntegracao = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[23].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[23].opcoes!
+  );
+
+  const analisePactuacoesMotivos = analisarCheckbox(
+    PERGUNTAS_BLOCO_GOVERNANCA[24].colunas!
+  );
+
+  const analiseIndicadoresMunicipio = analisarCheckbox(
+    PERGUNTAS_BLOCO_GOVERNANCA[25].colunas!
+  );
+
+  const analiseIndicadoresInstancias = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[26].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[26].opcoes!
+  );
+
+  const analiseIndicadoresRacaCor = analisarPergunta(
+    PERGUNTAS_BLOCO_GOVERNANCA[27].coluna!,
+    PERGUNTAS_BLOCO_GOVERNANCA[27].opcoes!
   );
 
   // ========== ANÁLISES DO BLOCO GESTÃO DE OFERTA ==========
@@ -2589,6 +2895,30 @@ export function Analise() {
   const analiseTransporteSuficiente = analisarPergunta(
     PERGUNTAS_BLOCO_GESTAO_OFERTA[24].coluna!,
     PERGUNTAS_BLOCO_GESTAO_OFERTA[24].opcoes!
+  );
+
+  // Novas análises do Bloco Gestão de Oferta
+  const analiseRepatriamentoEstrategia = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[25].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[25].opcoes!
+  );
+
+  const analiseMeiosRepatriamento = analisarCheckbox(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[26].colunas!
+  );
+
+  const analiseGargalosRepatriamento = analisarCheckbox(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[27].colunas!
+  );
+
+  const analiseSistemaIdentificaAutomatico = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[28].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[28].opcoes!
+  );
+
+  const analiseGestaoExclusivaPopulacao = analisarPergunta(
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[29].coluna!,
+    PERGUNTAS_BLOCO_GESTAO_OFERTA[29].opcoes!
   );
 
   // ========== ANÁLISES DO BLOCO ORDENAÇÃO DA DEMANDA ==========
@@ -2793,6 +3123,22 @@ export function Analise() {
   const analiseAcessoTempoReal = analisarPergunta(
     PERGUNTAS_BLOCO_PRIORIZACAO[19].coluna!,
     PERGUNTAS_BLOCO_PRIORIZACAO[19].opcoes!
+  );
+
+  // Novas análises do Bloco Priorização Clínica
+  const analiseFluxosAlterados = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[20].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[20].opcoes!
+  );
+
+  const analiseFilasMultiplosSistemas = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[21].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[21].opcoes!
+  );
+
+  const analisePriorizacaoReguladorSistema = analisarPergunta(
+    PERGUNTAS_BLOCO_PRIORIZACAO[22].coluna!,
+    PERGUNTAS_BLOCO_PRIORIZACAO[22].opcoes!
   );
 
 // Componente compacto para exibir uma pergunta
@@ -3523,6 +3869,24 @@ export function Analise() {
               corIndex={1}
               perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[19].coluna}
             />
+            <PerguntaCompacta 
+              titulo="Fluxos alterados informalmente"
+              dados={analiseFluxosAlterados}
+              corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[20].coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Filas paralelas por múltiplos sistemas"
+              dados={analiseFilasMultiplosSistemas}
+              corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[21].coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Priorização: regulador ou sistema"
+              dados={analisePriorizacaoReguladorSistema}
+              corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_PRIORIZACAO[22].coluna}
+            />
           </div>
         </motion.div>
       )}
@@ -3666,6 +4030,48 @@ export function Analise() {
               dados={analiseTransparenciaFila}
               corIndex={2}
               perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[20].coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Gestores podem ajustar ordem da fila"
+              dados={analiseGestoresAjustamFila}
+              corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[21].coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Espaços de governança que participa"
+              dados={analiseEspacosGovernancaMunicipio}
+              corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[22].coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Sistemas em integração"
+              dados={analiseSistemasIntegracao}
+              corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[23].coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Motivos quando pactuações não cumpridas"
+              dados={analisePactuacoesMotivos}
+              corIndex={0}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[24].colunas?.[0]?.coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Indicadores monitorados pelo município"
+              dados={analiseIndicadoresMunicipio}
+              corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[25].colunas?.[0]?.coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Indicadores apresentados nas instâncias"
+              dados={analiseIndicadoresInstancias}
+              corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[26].coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Indicadores desagregados por raça/cor"
+              dados={analiseIndicadoresRacaCor}
+              corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA[27].coluna}
             />
           </div>
         </motion.div>
@@ -3835,6 +4241,36 @@ export function Analise() {
               corIndex={0}
               perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[24].coluna}
             />
+            <PerguntaCompacta 
+              titulo="Estratégia de repatriamento"
+              dados={analiseRepatriamentoEstrategia}
+              corIndex={1}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[25].coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Meios utilizados no repatriamento"
+              dados={analiseMeiosRepatriamento}
+              corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[26].colunas?.[0]?.coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Principais gargalos do repatriamento"
+              dados={analiseGargalosRepatriamento}
+              corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[27].colunas?.[0]?.coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Sistema identifica automaticamente"
+              dados={analiseSistemaIdentificaAutomatico}
+              corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[28].coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Gestão exclusiva para própria população"
+              dados={analiseGestaoExclusivaPopulacao}
+              corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_GESTAO_OFERTA[29].coluna}
+            />
           </div>
         </motion.div>
       )}
@@ -3870,6 +4306,18 @@ export function Analise() {
               dados={analiseIntegracaoSistemasDRS}
               corIndex={2}
               perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA_DRS[2].coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Instância regional de coordenação"
+              dados={analiseInstanciaCoordenacaoDRS}
+              corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA_DRS[3].coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Equipe técnica de regulação no DRS"
+              dados={analiseEquipeTecnicaDRS}
+              corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_ESTRUTURA_DRS[4].colunas?.[0]?.coluna}
             />
           </div>
         </motion.div>
@@ -4134,6 +4582,30 @@ export function Analise() {
               dados={analiseTratamentoJudiciais}
               corIndex={1}
               perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA_DRS[7].coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Papel do DRS na regulação do acesso"
+              dados={analisePapelDRSRegulacao}
+              corIndex={2}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA_DRS[8].colunas?.[0]?.coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Indicadores monitorados pelo DRS"
+              dados={analiseIndicadoresDRSMonitorados}
+              corIndex={3}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA_DRS[9].colunas?.[0]?.coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Mecanismos de participação social"
+              dados={analiseMecanismosParticipacaoSocial}
+              corIndex={4}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA_DRS[10].colunas?.[0]?.coluna}
+            />
+            <PerguntaCompacta 
+              titulo="Principal desafio para regulação"
+              dados={analiseDesafiosRegulacao}
+              corIndex={5}
+              perguntaCompleta={PERGUNTAS_BLOCO_GOVERNANCA_DRS[11].colunas?.[0]?.coluna}
             />
           </div>
         </motion.div>
